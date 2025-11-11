@@ -1,0 +1,10 @@
+project_id = "rmqcomyfzfrrdbmvelwq"
+
+[functions.sdr-chat]
+verify_jwt = false
+
+[functions.pipefy-integration]
+verify_jwt = false
+
+[functions.calcom-integration]
+verify_jwt = false
