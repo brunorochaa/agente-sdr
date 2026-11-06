@@ -44,7 +44,7 @@ O Deno não precisa estar instalado: os scripts usam `npx deno`.
 
 ## Notas para futuros agentes
 
-- Em 2026-11-06 o projeto foi reorganizado: saiu do Lovable (IA e plugins), ganhou testes, suporte a três provedores de IA, redesign da página e do chat, e perdeu os componentes shadcn/ui e as dependências que não eram usados.
+- Em 2026-11-06 o projeto foi reorganizado: saiu do Lovable (IA e plugins), ganhou testes, suporte a três provedores de IA, redesign da página e do chat, e perdeu os componentes shadcn/ui, as dependências e os arquivos que não eram usados (`bun.lockb`, `components.json`, `placeholder.svg`).
 - Bugs corrigidos na reorganização: o chat quebrava em toda chamada de ferramenta (formato antigo do Lovable), o prompt do agente não era enviado ao Gemini, o Pipefy recebia campos vazios e criava card duplicado, qualquer pessoa podia ler todos os leads pela chave pública, e visitante novo não via a saudação.
 - Em 2026-11-06, segunda rodada: o agendamento só aceita horários oferecidos na conversa (guardados em `chat_sessions.offered_slots` e repetidos no prompt, porque o histórico só guarda o texto das respostas); a mensagem do usuário só é gravada depois que a IA responde; lead de outra conversa não é sobrescrito; limite de mensagens (por sessão e global); modelo padrão do Claude passou a ser o Sonnet 5.5; marca nova (`Logo.tsx`, `favicon.svg`), seção de dúvidas e chamada final na página; CI no GitHub Actions. Migration nova: `20261106000000_horarios_e_limite.sql` (precisa de `supabase db push`).
 - Os arquivos do projeto usam LF (`.gitattributes`). Se um editor gravar CRLF, normalize antes de fazer substituições por script.

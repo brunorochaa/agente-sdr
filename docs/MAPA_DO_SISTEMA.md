@@ -200,7 +200,7 @@ Atualize, no mesmo commit: este arquivo, o `README.md` e o `CLAUDE.md` **e** o `
 
 - **No ar**: site na Vercel (`brunorochaa-agente-sdr.vercel.app`, publica a cada push na `main`), projeto Supabase `elite-agente-sdr` com as 3 migrations aplicadas e a função `sdr-chat` publicada. O chat respondeu em produção; o fluxo completo de agendamento ainda precisa ser testado com chaves reais.
 - **Pendências do dono**: trocar a senha do banco (foi colada em um chat); conferir no Table Editor se havia dado real exposto antes do RLS ser fechado; testar o agendamento de ponta a ponta.
-- **Sobras do Lovable** (pedir aprovação antes de apagar): `bun.lockb` e `components.json`.
+- **Sobras do Lovable**: `bun.lockb`, `components.json` e `public/placeholder.svg` foram removidos em 2026-11-06 (nada os usava). O gerenciador de pacotes do projeto é o npm (`package-lock.json`).
 - **Ideias não feitas**: ação agendada no GitHub para evitar a pausa do Supabase gratuito; imagem própria de compartilhamento (`og-image`); atualização em lote dos cards antigos do Pipefy.
 - **Não verificado visualmente**: menu do celular aberto, chat aberto em tela cheia no celular e o cabeçalho ao rolar (o navegador sem tela usado nos testes não rola nem clica).
 
