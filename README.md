@@ -6,6 +6,10 @@ An AI-powered pre-sales (SDR) agent for ERP360, a fictional ERP. A web chat talk
 
 **Live demo:** https://brunorochaa-agente-sdr.vercel.app
 
+| Desktop                                                          | Mobile                                                 |
+| ---------------------------------------------------------------- | ------------------------------------------------------ |
+| ![Landing page with the chat button](docs/imagens/pagina-en.png) | ![Landing page on mobile](docs/imagens/celular-en.png) |
+
 > **Full documentation:** the [system map](docs/MAPA_DO_SISTEMA.md) (in Portuguese) explains where every piece lives, how the agent works and **what to do when something changes** (copy, prompt, database, AI provider, deploy).
 
 ## What it does
@@ -146,6 +150,10 @@ Agente de pré-vendas (SDR) com IA para o ERP360, um ERP fictício. Um webchat c
 
 **Demonstração no ar:** https://brunorochaa-agente-sdr.vercel.app
 
+| Computador                                                        | Celular                                                   |
+| ----------------------------------------------------------------- | --------------------------------------------------------- |
+| ![Página inicial com o botão do chat](docs/imagens/pagina-pt.png) | ![Página inicial no celular](docs/imagens/celular-pt.png) |
+
 > **Documentação completa:** o [mapa do sistema](docs/MAPA_DO_SISTEMA.md) explica onde fica cada peça, como o agente funciona e **o que fazer quando algo muda** (texto, prompt, banco, provedor de IA, deploy).
 
 ## O que faz
@@ -217,7 +225,7 @@ Variáveis das Edge Functions (modelo em `supabase/.env.example`):
 | chave do provedor escolhido                    | sim         | `GEMINI_API_KEY`, `OPENAI_API_KEY` ou `ANTHROPIC_API_KEY`      |
 | `GEMINI_MODEL`, `OPENAI_MODEL`, `CLAUDE_MODEL` | não         | padrões: `gemini-2.5-flash`, `gpt-5-mini`, `claude-sonnet-5-5` |
 | `PIPEFY_API_TOKEN`, `PIPEFY_PIPE_ID`           | não         | sem elas, o lead fica só no banco                              |
-| `CAL_COM_API_KEY`, `CAL_COM_EVENT_TYPE_ID`     | não         | sem ela, o agente avisa que não deu para agendar                      |
+| `CAL_COM_API_KEY`, `CAL_COM_EVENT_TYPE_ID`     | não         | sem ela, o agente avisa que não deu para agendar               |
 
 O modelo padrão do Claude é o Sonnet 5.5: bem mais barato que o Opus e suficiente para um chat curto com ferramentas. O Haiku 5.5 é ainda mais barato, mas não tem o _fallback_ do servidor (abaixo). Para trocar, use `CLAUDE_MODEL`.
 

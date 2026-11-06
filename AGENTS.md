@@ -42,6 +42,15 @@ O Deno não precisa estar instalado: os scripts usam `npx deno`.
 - Falha no Pipefy ou no Cal.com não pode travar a conversa: as ferramentas devolvem `{ ok: false, erro }` ao modelo.
 - Formatação: `.editorconfig`, Prettier (`.prettierrc.json`) e `deno fmt` (2 espaços, aspas duplas, LF, linhas de até 100).
 
+## README com prints
+
+- O `README.md` mostra o projeto com prints em `docs/imagens/` (PNG; 1280 de largura no computador, 500 no celular; poucos, só as telas principais), em tabelas lado a lado.
+- Só dados fictícios nas imagens: nada de nome, telefone, e-mail ou chave reais, e nada do serviço na tela.
+- Refaça os prints só quando a tela mudar de verdade: gere de novo e compare o tamanho do arquivo; se for idêntico, mantenha o antigo (evita inchar o repositório).
+- Como tirar: Chrome sem janela, `chrome.exe --headless=new --hide-scrollbars --window-size=1280,900 --virtual-time-budget=10000 --screenshot=<arquivo> <url>`, com um `--user-data-dir=<pasta temporária>` para cada print. Site estático abre por `file:///`; PHP sobe com `C:\Users\bruno\php\php.exe -S localhost:8000 -t public` (o PHP não está no PATH). O Chrome sem janela não passa de uns 500 de largura.
+- A rotina completa está na skill `/readme` do Claude Code.
+- Neste projeto: os prints vêm do site publicado (https://brunorochaa-agente-sdr.vercel.app), com sufixo `-pt` e `-en` nas imagens; `--lang=en-US` mostra a versão em inglês. **Não use o chat nos prints**: ele cria lead no Pipefy e gasta chamada de IA.
+
 ## Notas para futuros agentes
 
 - Em 2026-11-06 o projeto foi reorganizado: saiu do Lovable (IA e plugins), ganhou testes, suporte a três provedores de IA, redesign da página e do chat, e perdeu os componentes shadcn/ui, as dependências e os arquivos que não eram usados (`bun.lockb`, `components.json`, `placeholder.svg`).
