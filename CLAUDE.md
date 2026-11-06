@@ -46,6 +46,7 @@ O Deno não precisa estar instalado: os scripts usam `npx deno`.
 - Em 2026-11-06 o projeto foi reorganizado: saiu do Lovable (IA e plugins), ganhou testes, suporte a três provedores de IA, redesign da página e do chat, e perdeu os componentes shadcn/ui e as dependências que não eram usados.
 - Bugs corrigidos na reorganização: o chat quebrava em toda chamada de ferramenta (formato antigo do Lovable), o prompt do agente não era enviado ao Gemini, o Pipefy recebia campos vazios e criava card duplicado, qualquer pessoa podia ler todos os leads pela chave pública, e visitante novo não via a saudação.
 - Nunca testado de ponta a ponta com chaves reais. A integração real com o Cal.com (API v2) foi escrita pela documentação.
+- Deploy: a Vercel publica a `main` a cada push e precisa das variáveis `VITE_SUPABASE_*` configuradas no painel dela (o `.env` não é versionado). Em 2026-11-06 o site ficou em branco porque o `.env` saiu do git antes disso; o `client.ts` agora não derruba a página quando faltam as variáveis.
 - Após alterações de código: rode `npm test` e `npm run check`.
 
 ## Regras gerais

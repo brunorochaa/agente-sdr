@@ -42,6 +42,10 @@ supabase functions deploy sdr-chat
 
 Para rodar as funções localmente: `supabase start` e `supabase functions serve --env-file supabase/.env`.
 
+### Deploy
+
+O frontend está na Vercel, que publica a cada push na `main`. O `.env` não vai para o git, então configure `VITE_SUPABASE_URL` e `VITE_SUPABASE_PUBLISHABLE_KEY` em **Settings → Environment Variables** do projeto na Vercel. Sem elas, a página abre, mas o chat fica indisponível. As Edge Functions são publicadas à parte, com `supabase functions deploy sdr-chat`.
+
 ## Testes e qualidade
 
 ```bash

@@ -1,0 +1,4 @@
+# Normaliza arquivos de texto com LF (igual ao .editorconfig)
+* text=auto eol=lf
+*.ico binary
+*.lockb binary
