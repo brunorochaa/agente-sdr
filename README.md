@@ -18,7 +18,7 @@ An AI-powered pre-sales (SDR) agent for ERP360, a fictional ERP. A web chat talk
 - Site and chat in **English and Portuguese** (flag switch; the agent answers in the visitor's language, quoting prices in US dollars in English).
 - Works with **Gemini, OpenAI (ChatGPT) or Claude**, chosen by an environment variable.
 
-Without the Pipefy and Cal.com keys, the lead stays only in the database and booking runs in demo mode.
+Without the Pipefy and Cal.com keys, the lead stays only in the database, and if booking is not configured the agent tells the visitor it could not schedule (no fake link). On booking, the chat transcript is added as a comment on the Pipefy card.
 
 ## Tech stack
 
@@ -77,7 +77,7 @@ Edge Function variables (template in `supabase/.env.example`):
 | chosen provider's key                          | yes      | `GEMINI_API_KEY`, `OPENAI_API_KEY` or `ANTHROPIC_API_KEY`       |
 | `GEMINI_MODEL`, `OPENAI_MODEL`, `CLAUDE_MODEL` | no       | defaults: `gemini-2.5-flash`, `gpt-5-mini`, `claude-sonnet-5-5` |
 | `PIPEFY_API_TOKEN`, `PIPEFY_PIPE_ID`           | no       | without them, the lead stays only in the database               |
-| `CAL_COM_API_KEY`, `CAL_COM_EVENT_TYPE_ID`     | no       | without them, time slots and link are simulated                 |
+| `CAL_COM_API_KEY`, `CAL_COM_EVENT_TYPE_ID`     | no       | without them, the agent says it could not schedule              |
 
 The default Claude model is Sonnet 5.5: much cheaper than Opus and enough for a short chat with tools. Haiku 5.5 is cheaper still, but it lacks the server-side fallback (below). Use `CLAUDE_MODEL` to change it.
 
@@ -158,7 +158,7 @@ Agente de pré-vendas (SDR) com IA para o ERP360, um ERP fictício. Um webchat c
 - Site e chat em **português e inglês** (botão com as bandeiras; o agente responde no idioma do visitante, com preços em dólar no inglês).
 - Funciona com **Gemini, OpenAI (ChatGPT) ou Claude**, escolhidos por uma variável de ambiente.
 
-Sem chaves do Pipefy e do Cal.com, o lead fica só no banco e o agendamento falha com aviso ao cliente (não há mais link simulado).
+Sem chaves do Pipefy e do Cal.com, o lead fica só no banco e o agendamento falha com aviso ao cliente (não há mais link simulado). Ao agendar, a conversa do chat vai como comentário no card do Pipefy.
 
 ## Tecnologias
 
