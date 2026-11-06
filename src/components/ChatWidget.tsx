@@ -3,19 +3,12 @@ import { ArrowUp, MessageSquare, RotateCw, X } from "lucide-react";
 import { LogoMark } from "@/components/Logo";
 import { supabase } from "@/integrations/supabase/client";
 import { onOpenChat } from "@/lib/chat-events";
+import { copy, type Lang } from "@/lib/copy";
+import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 const SESSION_KEY = "sdr_session_id";
 const MAX_LENGTH = 1000;
-
-const WELCOME_FALLBACK =
-  "Olá! Sou o assistente virtual da ERP360. Como posso ajudar você hoje com a gestão da sua empresa?";
-
-const SUGGESTIONS = [
-  "Quero conhecer os planos",
-  "Meu estoque vive desatualizado",
-  "Quero agendar uma demonstração",
-];
 
 interface Message {
   role: "user" | "assistant";
@@ -47,10 +40,11 @@ function getSessionId(): string {
   }
 }
 
-/** Quando a função recusa por excesso de uso (429), ela explica o motivo em pt-BR. */
-async function rateLimitMessage(error: unknown): Promise<string | null> {
+/** Quando a função recusa por excesso de uso (429), ela explica o motivo (em pt-BR; em inglês usamos o texto da tela). */
+async function rateLimitMessage(error: unknown, lang: Lang): Promise<string | null> {
   const response = (error as { context?: unknown } | null)?.context;
   if (!(response instanceof Response) || response.status !== 429) return null;
+  if (lang === "en") return copy.en.chat.rateLimited;
   try {
     return (await response.json()).error ?? null;
   } catch {
@@ -58,8 +52,8 @@ async function rateLimitMessage(error: unknown): Promise<string | null> {
   }
 }
 
-function formatTime(date: Date) {
-  return date.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+function formatTime(date: Date, locale: string) {
+  return date.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" });
 }
 
 function prefersReducedMotion() {
@@ -93,10 +87,10 @@ function MessageText({ text }: { text: string }) {
   );
 }
 
-function TypingIndicator() {
+function TypingIndicator({ label }: { label: string }) {
   return (
     <div className="flex items-center gap-1 px-1 py-2" role="status">
-      <span className="sr-only">Assistente digitando</span>
+      <span className="sr-only">{label}</span>
       {[0, 150, 300].map((delay) => (
         <span
           key={delay}
@@ -110,6 +104,8 @@ function TypingIndicator() {
 }
 
 export const ChatWidget = () => {
+  const { lang, t } = useI18n();
+  const c = t.chat;
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
@@ -144,7 +140,7 @@ export const ChatWidget = () => {
       })
       .catch((error) => {
         console.error("Erro ao carregar histórico:", error);
-        setMessages([{ role: "assistant", content: WELCOME_FALLBACK, timestamp: new Date() }]);
+        setMessages([{ role: "assistant", content: "", timestamp: new Date() }]);
       })
       // Só aqui o chat passa a aceitar envio: antes disso, o histórico poderia
       // sobrescrever uma mensagem que o visitante acabou de mandar.
@@ -194,7 +190,10 @@ export const ChatWidget = () => {
   }, [isOpen]);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: prefersReducedMotion() ? "auto" : "smooth" });
+    bottomRef.current?.scrollIntoView({
+      behavior: prefersReducedMotion() ? "auto" : "smooth",
+      block: "nearest",
+    });
   }, [messages, isLoading, isOpen]);
 
   // Ajusta a altura do campo conforme o texto.
@@ -232,7 +231,7 @@ export const ChatWidget = () => {
         ]);
       } catch (error) {
         console.error("Erro ao enviar mensagem:", error);
-        setNotice(await rateLimitMessage(error));
+        setNotice(await rateLimitMessage(error, lang));
         setMessages((prev) =>
           prev.map((m, i) => (i === prev.length - 1 ? { ...m, failed: true } : m)),
         );
@@ -240,7 +239,7 @@ export const ChatWidget = () => {
         setIsLoading(false);
       }
     },
-    [isLoading, ready, sessionId],
+    [isLoading, ready, sessionId, lang],
   );
 
   const retry = (message: Message) => {
@@ -262,7 +261,7 @@ export const ChatWidget = () => {
         >
           <MessageSquare className="h-5 w-5 sm:h-4 sm:w-4" aria-hidden="true" />
           {/* No celular só o ícone aparece, mas o nome acessível continua o mesmo texto */}
-          <span className="sr-only sm:not-sr-only">Falar com especialista</span>
+          <span className="sr-only sm:not-sr-only">{c.launcher}</span>
         </button>
       )}
 
@@ -270,7 +269,7 @@ export const ChatWidget = () => {
         <section
           role="dialog"
           aria-modal="true"
-          aria-label="Chat com especialista ERP360"
+          aria-label={c.dialog}
           className="fixed inset-0 z-50 flex h-[100dvh] flex-col overflow-hidden bg-chat-background duration-200 animate-in fade-in slide-in-from-bottom-2 sm:inset-auto sm:bottom-5 sm:right-5 sm:h-[620px] sm:max-h-[calc(100vh-2.5rem)] sm:w-[400px] sm:rounded-3xl sm:border sm:shadow-2xl"
         >
           {/* Cabeçalho */}
@@ -281,22 +280,25 @@ export const ChatWidget = () => {
                 <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-card bg-emerald-500" />
               </div>
               <div className="leading-tight">
-                <p className="text-sm font-semibold">Assistente ERP360</p>
-                <p className="text-xs text-muted-foreground">Responde em segundos</p>
+                <p className="text-sm font-semibold">{c.name}</p>
+                <p className="text-xs text-muted-foreground">{c.fast}</p>
               </div>
             </div>
             <button
               type="button"
               onClick={() => setIsOpen(false)}
               className="rounded-lg p-2.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              aria-label="Fechar chat"
+              aria-label={c.close}
             >
               <X className="h-4 w-4" />
             </button>
           </header>
 
           {/* Mensagens */}
-          <div className="flex-1 space-y-4 overflow-y-auto px-4 py-5" aria-live="polite">
+          <div
+            className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain px-4 py-5"
+            aria-live="polite"
+          >
             {messages.map((msg, idx) => {
               const isUser = msg.role === "user";
               return (
@@ -313,7 +315,8 @@ export const ChatWidget = () => {
                       msg.failed && "opacity-60",
                     )}
                   >
-                    <MessageText text={msg.content} />
+                    {/* A 1ª mensagem é sempre a saudação do servidor: mostramos a do idioma escolhido */}
+                    <MessageText text={idx === 0 && !isUser ? c.welcome : msg.content} />
                   </div>
                   {msg.failed ? (
                     <button
@@ -322,11 +325,11 @@ export const ChatWidget = () => {
                       className="flex items-center gap-1 text-xs font-medium text-destructive hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     >
                       <RotateCw className="h-3 w-3" />
-                      Não enviada. Tentar de novo
+                      {c.failed}
                     </button>
                   ) : (
                     <span className="px-1 font-mono text-[10px] text-muted-foreground">
-                      {formatTime(msg.timestamp)}
+                      {formatTime(msg.timestamp, t.locale)}
                     </span>
                   )}
                 </div>
@@ -335,7 +338,7 @@ export const ChatWidget = () => {
 
             {(isLoading || historyStatus === "loading") && (
               <div className="w-fit rounded-2xl rounded-bl-sm border bg-card px-3">
-                <TypingIndicator />
+                <TypingIndicator label={c.typing} />
               </div>
             )}
 
@@ -350,7 +353,7 @@ export const ChatWidget = () => {
 
             {showSuggestions && (
               <div className="flex flex-wrap gap-2 pt-1">
-                {SUGGESTIONS.map((suggestion) => (
+                {c.suggestions.map((suggestion) => (
                   <button
                     key={suggestion}
                     type="button"
@@ -387,9 +390,9 @@ export const ChatWidget = () => {
                     send(input);
                   }
                 }}
-                placeholder="Escreva sua mensagem"
+                placeholder={c.placeholder}
                 maxLength={MAX_LENGTH}
-                aria-label="Mensagem"
+                aria-label={c.messageLabel}
                 // 16px no celular: abaixo disso o iPhone dá zoom ao tocar no campo
                 className="max-h-[120px] flex-1 resize-none bg-transparent py-1 text-base outline-none placeholder:text-muted-foreground sm:text-sm"
               />
@@ -397,21 +400,20 @@ export const ChatWidget = () => {
                 type="submit"
                 disabled={isLoading || !ready || !input.trim()}
                 className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-30"
-                aria-label="Enviar mensagem"
+                aria-label={c.send}
               >
                 <ArrowUp className="h-4 w-4" />
               </button>
             </div>
             <p className="mt-2 text-center text-[11px] text-muted-foreground">
-              Assistente com IA. Nome, e-mail e o que você contar aqui são usados só para o contato
-              comercial.{" "}
+              {c.disclaimer}{" "}
               <a
                 href="/privacidade"
                 target="_blank"
                 rel="noreferrer"
                 className="font-medium underline underline-offset-2 hover:text-foreground"
               >
-                Privacidade
+                {c.privacy}
               </a>
             </p>
           </form>

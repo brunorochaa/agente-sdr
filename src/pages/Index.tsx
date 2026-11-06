@@ -18,145 +18,17 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { ChatWidget } from "@/components/ChatWidget";
+import { LangSwitch } from "@/components/LangSwitch";
 import { Logo } from "@/components/Logo";
 import { Reveal } from "@/components/Reveal";
 import { openChat } from "@/lib/chat-events";
+import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
-// Conteúdo alinhado ao que o agente conhece (prompt.ts): módulos, planos, prazos e diferenciais.
+// Os textos ficam em src/lib/copy.ts (pt e en). Aqui só os ícones, na mesma ordem das listas de lá.
 
-const MODULES: { name: string; text: string; icon: LucideIcon }[] = [
-  {
-    name: "Financeiro",
-    text: "Contas a pagar e receber, conciliação e fluxo de caixa diário.",
-    icon: Wallet,
-  },
-  {
-    name: "Estoque",
-    text: "Saldo por depósito, alertas de ruptura e inventário sem planilha.",
-    icon: Boxes,
-  },
-  {
-    name: "Vendas",
-    text: "Pedidos, orçamentos e faturamento ligados ao estoque.",
-    icon: Receipt,
-  },
-  {
-    name: "Compras",
-    text: "Cotações, pedidos a fornecedores e entrada de notas.",
-    icon: ShoppingCart,
-  },
-  {
-    name: "RH",
-    text: "Cadastro de colaboradores, férias e ponto em um só lugar.",
-    icon: Users,
-  },
-  {
-    name: "Relatórios",
-    text: "Indicadores de todas as áreas, atualizados na hora.",
-    icon: BarChart3,
-  },
-];
-
-const DIFFERENTIALS: { title: string; text: string; icon: LucideIcon }[] = [
-  {
-    title: "Interface intuitiva",
-    text: "Telas simples, pensadas para o dia a dia da equipe.",
-    icon: LayoutDashboard,
-  },
-  {
-    title: "Implementação rápida",
-    text: "Em 7 a 15 dias sua operação está rodando.",
-    icon: Zap,
-  },
-  {
-    title: "Suporte 24/7",
-    text: "Atendimento todos os dias, a qualquer hora.",
-    icon: Headset,
-  },
-  {
-    title: "IA integrada",
-    text: "Assistente com IA para tirar dúvidas e agilizar o atendimento.",
-    icon: Sparkles,
-  },
-];
-
-const STEPS = [
-  {
-    title: "Conversa inicial",
-    text: "Nosso assistente entende o momento da sua empresa e agenda com o time.",
-  },
-  {
-    title: "Demonstração",
-    text: "Um especialista mostra o ERP360 com base nos processos que você descreveu.",
-  },
-  {
-    title: "Implantação",
-    text: "Em 7 a 15 dias sua operação está rodando, com suporte 24/7 desde o início.",
-  },
-];
-
-const PLANS = [
-  {
-    name: "Starter",
-    price: "R$ 297",
-    period: "/mês",
-    text: "Para quem quer sair das planilhas e organizar o básico.",
-    highlights: ["Financeiro, estoque e vendas", "Suporte 24/7"],
-  },
-  {
-    name: "Professional",
-    price: "R$ 597",
-    period: "/mês",
-    text: "Para empresas em crescimento, com várias áreas conectadas.",
-    highlights: ["Todos os módulos", "Relatórios avançados", "Suporte 24/7"],
-    featured: true,
-  },
-  {
-    name: "Enterprise",
-    price: "Sob consulta",
-    period: "",
-    text: "Para operações com volume alto ou necessidades específicas.",
-    highlights: ["Tudo do Professional", "Implantação dedicada"],
-  },
-];
-
-const FAQ: { question: string; answer: string; privacyLink?: boolean }[] = [
-  {
-    question: "Quanto tempo leva para implantar?",
-    answer:
-      "Entre 7 e 15 dias, dependendo dos módulos e do volume de dados que precisam ser migrados. O suporte 24/7 já está incluído desde o primeiro dia.",
-  },
-  {
-    question: "Preciso contratar todos os módulos?",
-    answer:
-      "Não. O Starter cobre Financeiro, Estoque e Vendas. O Professional libera todos os módulos e os relatórios avançados, e você pode crescer de plano quando precisar.",
-  },
-  {
-    question: "Consigo trazer os dados das minhas planilhas?",
-    answer:
-      "Sim. Na demonstração, o especialista avalia como é a sua operação hoje e mostra como seus dados entram no ERP360.",
-  },
-  {
-    question: "Como funciona a conversa com o assistente?",
-    answer:
-      "É um assistente com IA. Ele entende o momento da sua empresa, tira dúvidas sobre o produto e, se você quiser, agenda uma demonstração com o nosso time. Os dados que você informa no chat (nome, e-mail, empresa e necessidade) são usados só para esse contato comercial.",
-  },
-  {
-    question: "O que acontece com os meus dados?",
-    answer:
-      "O que você escreve no chat fica guardado em um banco de dados com acesso restrito ao servidor e é usado só para preparar a conversa com o time. O navegador nunca acessa as tabelas diretamente.",
-    privacyLink: true,
-  },
-];
-
-const NAV_LINKS = [
-  ["Módulos", "#modulos"],
-  ["Como funciona", "#como-funciona"],
-  ["Planos", "#planos"],
-  ["Dúvidas", "#duvidas"],
-  ["Agendar", "#agendar"],
-];
+const MODULE_ICONS: LucideIcon[] = [Wallet, Boxes, Receipt, ShoppingCart, Users, BarChart3];
+const DIFFERENTIAL_ICONS: LucideIcon[] = [LayoutDashboard, Zap, Headset, Sparkles];
 
 /**
  * Flutua por cima do topo (margem negativa do tamanho dele), então o fundo do hero
@@ -164,9 +36,18 @@ const NAV_LINKS = [
  * O <header> não captura cliques: só a barra em si (pointer-events-auto).
  */
 function Header() {
+  const { t } = useI18n();
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const barRef = useRef<HTMLDivElement>(null);
+
+  const navLinks = [
+    [t.nav.modules, "#modulos"],
+    [t.nav.how, "#como-funciona"],
+    [t.nav.plans, "#planos"],
+    [t.nav.faq, "#duvidas"],
+    [t.nav.schedule, "#agendar"],
+  ];
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 12);
@@ -206,13 +87,13 @@ function Header() {
               : "border-transparent bg-transparent",
           )}
         >
-          <div className="flex h-14 items-center justify-between px-4">
+          <div className="flex h-14 items-center justify-between gap-3 px-4">
             <Logo />
             <nav
-              aria-label="Principal"
+              aria-label={t.header.mainNav}
               className="hidden items-center gap-1 text-sm text-muted-foreground lg:flex"
             >
-              {NAV_LINKS.map(([label, href]) => (
+              {navLinks.map(([label, href]) => (
                 <a
                   key={href}
                   href={href}
@@ -223,20 +104,21 @@ function Header() {
               ))}
             </nav>
             <div className="flex items-center gap-2">
+              <LangSwitch />
               <button
                 type="button"
                 onClick={() => openChat()}
                 className="rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-sm transition-all hover:bg-primary/90 hover:shadow-md"
               >
-                <span className="sm:hidden">Conversar</span>
-                <span className="hidden sm:inline">Falar com especialista</span>
+                <span className="md:hidden">{t.header.ctaShort}</span>
+                <span className="hidden md:inline">{t.header.ctaLong}</span>
               </button>
               <button
                 type="button"
                 onClick={() => setMenuOpen((open) => !open)}
                 aria-expanded={menuOpen}
                 aria-controls="menu-mobile"
-                aria-label={menuOpen ? "Fechar menu" : "Abrir menu"}
+                aria-label={menuOpen ? t.header.closeMenu : t.header.openMenu}
                 className="grid h-11 w-11 place-items-center rounded-xl border bg-card/70 text-foreground transition-colors hover:bg-card lg:hidden"
               >
                 {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
@@ -245,8 +127,12 @@ function Header() {
           </div>
 
           {menuOpen && (
-            <nav id="menu-mobile" aria-label="Menu" className="grid gap-1 border-t p-3 lg:hidden">
-              {NAV_LINKS.map(([label, href]) => (
+            <nav
+              id="menu-mobile"
+              aria-label={t.header.menu}
+              className="grid gap-1 border-t p-3 lg:hidden"
+            >
+              {navLinks.map(([label, href]) => (
                 <a
                   key={href}
                   href={href}
@@ -266,16 +152,8 @@ function Header() {
 
 /** Painel ilustrativo do produto (dados de exemplo). */
 function DashboardPreview() {
-  const rows = [
-    { label: "Recebido hoje", value: "R$ 48.230", delta: "+12%", good: true },
-    { label: "A pagar esta semana", value: "R$ 19.870", delta: "8 contas" },
-    { label: "Pedidos em separação", value: "37", delta: "6 urgentes" },
-  ];
-  const stock = [
-    { item: "Parafuso inox M6", qty: 120, min: 400 },
-    { item: "Caixa papelão 40x30", qty: 85, min: 150 },
-    { item: "Fita adesiva 45mm", qty: 640, min: 300 },
-  ];
+  const { t } = useI18n();
+  const d = t.dashboard;
 
   return (
     <div className="relative">
@@ -288,8 +166,8 @@ function DashboardPreview() {
           <Check className="h-4 w-4" />
         </span>
         <div className="leading-tight">
-          <p className="text-sm font-medium">Conciliação concluída</p>
-          <p className="text-xs text-muted-foreground">42 lançamentos</p>
+          <p className="text-sm font-medium">{d.chipReconciled}</p>
+          <p className="text-xs text-muted-foreground">{d.chipReconciledSub}</p>
         </div>
       </div>
       <div
@@ -301,7 +179,7 @@ function DashboardPreview() {
           <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500/60" />
           <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500" />
         </span>
-        <p className="text-sm font-medium">Estoque sincronizado</p>
+        <p className="text-sm font-medium">{d.chipStock}</p>
       </div>
 
       <div className="overflow-hidden rounded-2xl border bg-card shadow-[0_32px_64px_-32px_hsl(200_18%_12%/0.35)]">
@@ -311,12 +189,12 @@ function DashboardPreview() {
             <span className="h-2.5 w-2.5 rounded-full bg-accent/80" />
             <span className="h-2.5 w-2.5 rounded-full bg-primary/70" />
           </div>
-          <span className="eyebrow">Resumo do dia</span>
-          <span className="font-mono text-xs text-muted-foreground">exemplo</span>
+          <span className="eyebrow">{d.title}</span>
+          <span className="font-mono text-xs text-muted-foreground">{d.sample}</span>
         </div>
 
         <dl className="divide-y">
-          {rows.map((row) => (
+          {d.rows.map((row) => (
             <div key={row.label} className="flex items-baseline justify-between px-5 py-4">
               <dt className="text-sm text-muted-foreground">{row.label}</dt>
               <dd className="flex items-baseline gap-3">
@@ -335,9 +213,9 @@ function DashboardPreview() {
         </dl>
 
         <div className="border-t bg-muted/40 px-5 py-4">
-          <p className="eyebrow mb-3">Níveis de estoque</p>
+          <p className="eyebrow mb-3">{d.stockTitle}</p>
           <ul className="space-y-3">
-            {stock.map((s) => {
+            {d.stock.map((s) => {
               const ratio = Math.min(s.qty / s.min, 1);
               const low = s.qty < s.min;
               return (
@@ -371,6 +249,9 @@ function DashboardPreview() {
 }
 
 function Hero() {
+  const { t } = useI18n();
+  const h = t.hero;
+
   return (
     <div className="relative overflow-hidden">
       {/* Fundo: grade discreta e dois brilhos desfocados (verde e âmbar) */}
@@ -385,22 +266,20 @@ function Hero() {
       />
 
       <section
-        aria-label="Apresentação"
-        className="page-container relative grid items-center gap-16 pb-24 pt-28 md:pt-36 lg:grid-cols-[1.1fr_1fr] xl:gap-24 xl:pb-32 xl:pt-40"
+        aria-label={h.aria}
+        className="page-container relative grid items-center gap-16 pb-24 pt-28 md:pt-36 lg:grid-cols-[1.1fr_1fr] xl:gap-24 xl:pb-28 xl:pt-36"
       >
         <div>
           <p className="mb-6 inline-flex items-center gap-2 rounded-full border bg-card/80 px-3.5 py-1.5 text-xs font-medium text-muted-foreground shadow-sm backdrop-blur">
             <span className="h-2 w-2 rounded-full bg-accent" aria-hidden="true" />
-            Sua empresa em 360°
+            {h.badge}
           </p>
           <h1 className="text-4xl font-semibold leading-[1.06] tracking-tight md:text-[3.4rem] xl:text-[4rem]">
-            Financeiro, estoque e vendas falando a{" "}
-            <span className="text-gradient">mesma língua</span>
+            {h.titleStart} <span className="text-gradient">{h.titleHighlight}</span>
             <span className="text-accent">.</span>
           </h1>
           <p className="mt-6 max-w-xl text-lg leading-relaxed text-muted-foreground xl:max-w-2xl xl:text-xl">
-            O ERP360 junta as áreas da sua empresa num sistema só. Menos retrabalho, números
-            confiáveis e relatórios prontos quando você precisa decidir.
+            {h.text}
           </p>
 
           <div className="mt-9 flex flex-wrap items-center gap-4">
@@ -409,23 +288,19 @@ function Hero() {
               onClick={() => openChat()}
               className="group inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-3.5 text-sm font-medium text-primary-foreground shadow-lg shadow-primary/25 transition-all hover:-translate-y-0.5 hover:bg-primary/90 hover:shadow-xl hover:shadow-primary/30"
             >
-              Conversar com um especialista
+              {h.cta}
               <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
             </button>
             <a
               href="#planos"
               className="rounded-xl border bg-card/70 px-5 py-3.5 text-sm font-medium backdrop-blur transition-colors hover:bg-card"
             >
-              Ver planos e preços
+              {h.secondary}
             </a>
           </div>
 
           <dl className="mt-12 grid max-w-lg grid-cols-3 gap-2 sm:gap-4">
-            {[
-              ["7–15 dias", "para implantar"],
-              ["24/7", "de suporte"],
-              ["6", "módulos integrados"],
-            ].map(([value, label]) => (
+            {h.stats.map(([value, label]) => (
               <div
                 key={label}
                 className="rounded-2xl border bg-card/70 px-2.5 py-3 backdrop-blur sm:px-4"
@@ -445,22 +320,27 @@ function Hero() {
 
 /** Faixa de diferenciais: os mesmos que o agente cita no prompt. */
 function Differentials() {
+  const { t } = useI18n();
+
   return (
-    <section aria-label="Diferenciais" className="border-y bg-card/60">
+    <section aria-label={t.differentials.aria} className="border-y bg-card/60">
       <ul className="page-container grid gap-8 py-12 sm:grid-cols-2 lg:grid-cols-4">
-        {DIFFERENTIALS.map((item, index) => (
-          <li key={item.title}>
-            <Reveal delay={index * 80} className="flex items-start gap-4">
-              <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
-                <item.icon className="h-5 w-5" strokeWidth={1.75} aria-hidden="true" />
-              </span>
-              <div>
-                <h2 className="text-sm font-semibold">{item.title}</h2>
-                <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{item.text}</p>
-              </div>
-            </Reveal>
-          </li>
-        ))}
+        {t.differentials.items.map((item, index) => {
+          const Icon = DIFFERENTIAL_ICONS[index];
+          return (
+            <li key={item.title}>
+              <Reveal delay={index * 80} className="flex items-start gap-4">
+                <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
+                  <Icon className="h-5 w-5" strokeWidth={1.75} aria-hidden="true" />
+                </span>
+                <div>
+                  <h2 className="text-sm font-semibold">{item.title}</h2>
+                  <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{item.text}</p>
+                </div>
+              </Reveal>
+            </li>
+          );
+        })}
       </ul>
     </section>
   );
@@ -492,57 +372,58 @@ function SectionHeading({
 }
 
 function Modules() {
+  const { t } = useI18n();
+  const m = t.modules;
+
   return (
     <section
       id="modulos"
       aria-labelledby="modulos-titulo"
       className="scroll-mt-20 border-t bg-card/60"
     >
-      <div className="page-container py-24 xl:py-32">
+      <div className="page-container py-20 xl:py-24">
         <Reveal>
-          <SectionHeading
-            id="modulos-titulo"
-            eyebrow="Módulos"
-            title="Cada área no seu lugar, todas conectadas."
-            text="Uma venda baixa o estoque, gera o recebível e aparece no relatório. Sem exportar, sem copiar e colar."
-          />
+          <SectionHeading id="modulos-titulo" eyebrow={m.eyebrow} title={m.title} text={m.text} />
         </Reveal>
         <ul className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {MODULES.map((module, index) => (
-            <li key={module.name}>
-              <Reveal delay={index * 70} className="h-full">
-                <article className="group relative h-full overflow-hidden rounded-2xl border bg-background p-7 transition-all duration-300 focus-within:border-primary/40 hover:-translate-y-1 hover:border-primary/40 hover:shadow-xl hover:shadow-primary/10 xl:p-9">
-                  <div
-                    aria-hidden="true"
-                    className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-primary/10 opacity-0 blur-2xl transition-opacity duration-300 group-hover:opacity-100"
-                  />
-                  <span className="relative grid h-12 w-12 place-items-center rounded-xl bg-primary/10 text-primary transition-colors duration-300 group-hover:bg-primary group-hover:text-primary-foreground">
-                    <module.icon className="h-6 w-6" strokeWidth={1.75} aria-hidden="true" />
-                  </span>
-                  <h3 className="relative mt-6 text-lg font-semibold">
-                    {/* O botão se estende por todo o cartão (after:inset-0): o cartão inteiro é clicável */}
-                    <button
-                      type="button"
-                      onClick={() => openChat(`Quero saber mais sobre o módulo ${module.name}.`)}
-                      className="text-left after:absolute after:inset-0 after:content-[''] focus-visible:outline-none"
+          {m.items.map((module, index) => {
+            const Icon = MODULE_ICONS[index];
+            return (
+              <li key={module.name}>
+                <Reveal delay={index * 70} className="h-full">
+                  <article className="group relative h-full overflow-hidden rounded-2xl border bg-background p-7 transition-all duration-300 focus-within:border-primary/40 hover:-translate-y-1 hover:border-primary/40 hover:shadow-xl hover:shadow-primary/10 xl:p-9">
+                    <div
+                      aria-hidden="true"
+                      className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-primary/10 opacity-0 blur-2xl transition-opacity duration-300 group-hover:opacity-100"
+                    />
+                    <span className="relative grid h-12 w-12 place-items-center rounded-xl bg-primary/10 text-primary transition-colors duration-300 group-hover:bg-primary group-hover:text-primary-foreground">
+                      <Icon className="h-6 w-6" strokeWidth={1.75} aria-hidden="true" />
+                    </span>
+                    <h3 className="relative mt-6 text-lg font-semibold">
+                      {/* O botão se estende por todo o cartão (after:inset-0): o cartão inteiro é clicável */}
+                      <button
+                        type="button"
+                        onClick={() => openChat(m.draft(module.name))}
+                        className="text-left after:absolute after:inset-0 after:content-[''] focus-visible:outline-none"
+                      >
+                        {module.name}
+                      </button>
+                    </h3>
+                    <p className="relative mt-2 text-sm leading-relaxed text-muted-foreground">
+                      {module.text}
+                    </p>
+                    <span
+                      aria-hidden="true"
+                      className="relative mt-5 inline-flex items-center gap-1 text-sm font-medium text-primary"
                     >
-                      {module.name}
-                    </button>
-                  </h3>
-                  <p className="relative mt-2 text-sm leading-relaxed text-muted-foreground">
-                    {module.text}
-                  </p>
-                  <span
-                    aria-hidden="true"
-                    className="relative mt-5 inline-flex items-center gap-1 text-sm font-medium text-primary"
-                  >
-                    Perguntar ao assistente
-                    <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
-                  </span>
-                </article>
-              </Reveal>
-            </li>
-          ))}
+                      {m.ask}
+                      <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
+                    </span>
+                  </article>
+                </Reveal>
+              </li>
+            );
+          })}
         </ul>
       </div>
     </section>
@@ -550,25 +431,24 @@ function Modules() {
 }
 
 function HowItWorks() {
+  const { t } = useI18n();
+  const steps = t.how.steps;
+
   return (
     <section
       id="como-funciona"
       aria-labelledby="como-funciona-titulo"
       className="scroll-mt-20 border-t"
     >
-      <div className="page-container py-24 xl:py-32">
+      <div className="page-container py-20 xl:py-24">
         <Reveal>
-          <SectionHeading
-            id="como-funciona-titulo"
-            eyebrow="Como funciona"
-            title="Do primeiro contato à operação rodando."
-          />
+          <SectionHeading id="como-funciona-titulo" eyebrow={t.how.eyebrow} title={t.how.title} />
         </Reveal>
         <ol className="grid gap-12 md:grid-cols-3 xl:gap-16">
-          {STEPS.map((step, index) => (
+          {steps.map((step, index) => (
             <li key={step.title} className="relative">
               {/* Linha até a próxima etapa (a última não tem): vai do círculo ao círculo seguinte */}
-              {index < STEPS.length - 1 && (
+              {index < steps.length - 1 && (
                 <div
                   aria-hidden="true"
                   className="absolute left-16 right-[-3rem] top-6 hidden h-px bg-gradient-to-r from-primary/50 to-border md:block xl:right-[-4rem]"
@@ -592,23 +472,21 @@ function HowItWorks() {
 }
 
 function Plans() {
+  const { t } = useI18n();
+  const p = t.plans;
+
   return (
     <section
       id="planos"
       aria-labelledby="planos-titulo"
       className="scroll-mt-20 border-t bg-card/60"
     >
-      <div className="page-container py-24 xl:py-32">
+      <div className="page-container py-20 xl:py-24">
         <Reveal>
-          <SectionHeading
-            id="planos-titulo"
-            eyebrow="Planos"
-            title="Preço claro, sem surpresa."
-            text="Não sabe qual escolher? Conte sobre sua empresa no chat e indicamos o plano certo."
-          />
+          <SectionHeading id="planos-titulo" eyebrow={p.eyebrow} title={p.title} text={p.text} />
         </Reveal>
         <div className="grid items-stretch gap-6 lg:grid-cols-3 xl:gap-8">
-          {PLANS.map((plan, index) => (
+          {p.items.map((plan, index) => (
             <Reveal key={plan.name} delay={index * 100} className="h-full">
               <article
                 className={cn(
@@ -628,7 +506,7 @@ function Plans() {
                   <h3 className="font-semibold">{plan.name}</h3>
                   {plan.featured && (
                     <span className="rounded-full bg-accent px-2.5 py-0.5 font-mono text-[10px] uppercase tracking-wider text-accent-foreground">
-                      Recomendado
+                      {p.recommended}
                     </span>
                   )}
                 </div>
@@ -670,7 +548,7 @@ function Plans() {
                 </ul>
                 <button
                   type="button"
-                  onClick={() => openChat(`Quero saber mais sobre o plano ${plan.name}.`)}
+                  onClick={() => openChat(p.draft(plan.name))}
                   className={cn(
                     "relative mt-auto rounded-xl px-4 py-3 text-sm font-medium transition-colors",
                     plan.featured
@@ -678,34 +556,30 @@ function Plans() {
                       : "border bg-card hover:border-primary hover:bg-primary hover:text-primary-foreground",
                   )}
                 >
-                  Falar sobre o {plan.name}
+                  {p.cta(plan.name)}
                 </button>
               </article>
             </Reveal>
           ))}
         </div>
-        <p className="mt-8 text-center text-sm text-muted-foreground">
-          Valores de demonstração: o ERP360 é um produto fictício.
-        </p>
+        <p className="mt-8 text-center text-sm text-muted-foreground">{p.note}</p>
       </div>
     </section>
   );
 }
 
 function Faq() {
+  const { t } = useI18n();
+  const f = t.faq;
+
   return (
     <section id="duvidas" aria-labelledby="duvidas-titulo" className="scroll-mt-20 border-t">
-      <div className="page-container grid gap-12 py-24 lg:grid-cols-[1fr_1.6fr] xl:py-32">
+      <div className="page-container grid gap-12 py-20 lg:grid-cols-[1fr_1.6fr] xl:py-24">
         <Reveal>
-          <SectionHeading
-            id="duvidas-titulo"
-            eyebrow="Dúvidas"
-            title="O que costumam perguntar antes de começar."
-            text="Não achou a sua? Pergunte ao assistente, ele responde em segundos."
-          />
+          <SectionHeading id="duvidas-titulo" eyebrow={f.eyebrow} title={f.title} text={f.text} />
         </Reveal>
         <div className="space-y-3">
-          {FAQ.map((item, index) => (
+          {f.items.map((item, index) => (
             <Reveal key={item.question} delay={index * 70}>
               <details className="group rounded-2xl border bg-card px-6 py-5 transition-colors open:border-primary/30 open:shadow-sm">
                 <summary className="flex cursor-pointer list-none items-center justify-between gap-6 font-medium [&::-webkit-details-marker]:hidden">
@@ -720,12 +594,12 @@ function Faq() {
                 <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted-foreground">
                   {item.answer}
                 </p>
-                {item.privacyLink && (
+                {item.privacy && (
                   <Link
                     to="/privacidade"
                     className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-primary underline-offset-4 hover:underline"
                   >
-                    Ler a política de privacidade
+                    {f.privacyLink}
                     <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
                   </Link>
                 )}
@@ -739,14 +613,17 @@ function Faq() {
 }
 
 function CallToAction() {
+  const { t } = useI18n();
+  const c = t.cta;
+
   return (
     <section
       id="agendar"
       aria-labelledby="agendar-titulo"
-      className="scroll-mt-20 border-t bg-card/60 py-24 xl:py-32"
+      className="scroll-mt-20 border-t bg-card/60 py-20 xl:py-24"
     >
       <div className="page-container">
-        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary via-primary to-emerald-900 px-8 py-16 text-primary-foreground shadow-2xl shadow-primary/20 sm:px-14 xl:py-24">
+        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary via-primary to-emerald-900 px-8 py-16 text-primary-foreground shadow-2xl shadow-primary/20 sm:px-14 xl:py-20">
           {/* Anéis decorativos: lembram o ciclo de 360° da marca */}
           <div aria-hidden="true" className="pointer-events-none absolute inset-y-0 right-0 w-1/2">
             {[28, 44, 60].map((size) => (
@@ -761,18 +638,15 @@ function CallToAction() {
           <div className="relative grid items-center gap-10 lg:grid-cols-[1.4fr_1fr]">
             <div>
               <p className="mb-4 font-mono text-xs uppercase tracking-[0.14em] text-primary-foreground/90">
-                Próximo passo
+                {c.eyebrow}
               </p>
               <h2
                 id="agendar-titulo"
                 className="max-w-2xl text-3xl font-semibold leading-tight tracking-tight md:text-4xl"
               >
-                Vamos ver o ERP360 com os números da sua empresa?
+                {c.title}
               </h2>
-              <p className="mt-4 max-w-xl leading-relaxed text-primary-foreground/85">
-                Converse com o assistente, conte o que hoje te atrapalha e agende uma demonstração
-                com o nosso time.
-              </p>
+              <p className="mt-4 max-w-xl leading-relaxed text-primary-foreground/85">{c.text}</p>
 
               <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-4">
                 <button
@@ -780,25 +654,21 @@ function CallToAction() {
                   onClick={() => openChat()}
                   className="group inline-flex items-center gap-2 rounded-xl bg-background px-6 py-3.5 text-sm font-medium text-foreground shadow-lg transition-all hover:-translate-y-0.5 hover:bg-background/90"
                 >
-                  Agendar demonstração
+                  {c.button}
                   <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
                 </button>
                 <a
                   href="#planos"
                   className="group inline-flex items-center gap-1.5 text-sm font-medium text-primary-foreground underline underline-offset-4"
                 >
-                  Ver planos e preços
+                  {c.plansLink}
                   <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
                 </a>
               </div>
             </div>
 
             <ul className="space-y-4 text-sm lg:justify-self-end">
-              {[
-                "O assistente responde em segundos",
-                "Demonstração baseada nos seus processos",
-                "Suporte 24/7 desde o primeiro dia",
-              ].map((item) => (
+              {c.bullets.map((item) => (
                 <li key={item} className="flex items-center gap-3">
                   <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-primary-foreground/15">
                     <Check className="h-3.5 w-3.5" aria-hidden="true" />
@@ -815,6 +685,16 @@ function CallToAction() {
 }
 
 function Footer() {
+  const { t } = useI18n();
+  const f = t.footer;
+
+  const productLinks = [
+    [t.nav.modules, "#modulos"],
+    [t.nav.how, "#como-funciona"],
+    [t.nav.plans, "#planos"],
+    [f.schedule, "#agendar"],
+  ];
+
   return (
     <footer className="border-t">
       {/* pb extra: o botão flutuante do chat fica no canto e não pode cobrir o texto */}
@@ -823,19 +703,14 @@ function Footer() {
           <div>
             <Logo />
             <p className="mt-4 max-w-xs text-sm leading-relaxed text-muted-foreground">
-              Gestão empresarial integrada. Financeiro, estoque e vendas falando a mesma língua.
+              {f.tagline}
             </p>
           </div>
 
-          <nav aria-label="Produto">
-            <p className="eyebrow mb-4">Produto</p>
+          <nav aria-label={f.product}>
+            <p className="eyebrow mb-4">{f.product}</p>
             <ul className="space-y-2.5 text-sm">
-              {[
-                ["Módulos", "#modulos"],
-                ["Como funciona", "#como-funciona"],
-                ["Planos", "#planos"],
-                ["Agendar demonstração", "#agendar"],
-              ].map(([label, href]) => (
+              {productLinks.map(([label, href]) => (
                 <li key={href}>
                   <a href={href} className="text-muted-foreground hover:text-foreground">
                     {label}
@@ -845,12 +720,12 @@ function Footer() {
             </ul>
           </nav>
 
-          <nav aria-label="Ajuda">
-            <p className="eyebrow mb-4">Ajuda</p>
+          <nav aria-label={f.help}>
+            <p className="eyebrow mb-4">{f.help}</p>
             <ul className="space-y-2.5 text-sm">
               <li>
                 <a href="#duvidas" className="text-muted-foreground hover:text-foreground">
-                  Dúvidas frequentes
+                  {f.faq}
                 </a>
               </li>
               <li>
@@ -859,12 +734,12 @@ function Footer() {
                   onClick={() => openChat()}
                   className="text-muted-foreground hover:text-foreground"
                 >
-                  Falar com especialista
+                  {f.talk}
                 </button>
               </li>
               <li>
                 <Link to="/privacidade" className="text-muted-foreground hover:text-foreground">
-                  Privacidade e LGPD
+                  {f.privacy}
                 </Link>
               </li>
             </ul>
@@ -872,35 +747,45 @@ function Footer() {
         </div>
 
         <div className="mt-12 flex flex-col gap-2 border-t pt-6 text-sm text-muted-foreground sm:flex-row sm:justify-between">
-          <p>© {new Date().getFullYear()} ERP360. Todos os direitos reservados.</p>
-          <p>Projeto de demonstração: empresa e produto fictícios.</p>
+          <p>
+            © {new Date().getFullYear()} ERP360. {f.rights}
+          </p>
+          <p>{f.demo}</p>
         </div>
       </div>
     </footer>
   );
 }
 
-const Index = () => (
-  <div className="min-h-screen">
-    <a
-      href="#conteudo"
-      className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[60] focus:rounded-lg focus:bg-primary focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-primary-foreground"
-    >
-      Ir para o conteúdo
-    </a>
-    <Header />
-    <main id="conteudo" tabIndex={-1} className="outline-none">
-      <Hero />
-      <Differentials />
-      <Modules />
-      <HowItWorks />
-      <Plans />
-      <Faq />
-      <CallToAction />
-    </main>
-    <Footer />
-    <ChatWidget />
-  </div>
-);
+const Index = () => {
+  const { t } = useI18n();
+
+  useEffect(() => {
+    document.title = t.title;
+  }, [t.title]);
+
+  return (
+    <div className="min-h-screen">
+      <a
+        href="#conteudo"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[60] focus:rounded-lg focus:bg-primary focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-primary-foreground"
+      >
+        {t.header.skip}
+      </a>
+      <Header />
+      <main id="conteudo" tabIndex={-1} className="outline-none">
+        <Hero />
+        <Differentials />
+        <Modules />
+        <HowItWorks />
+        <Plans />
+        <Faq />
+        <CallToAction />
+      </main>
+      <Footer />
+      <ChatWidget />
+    </div>
+  );
+};
 
 export default Index;

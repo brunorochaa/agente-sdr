@@ -88,6 +88,8 @@ Os IDs dos campos do formulário do Pipefy ficam em `supabase/functions/_shared/
 src/
 ├── pages/Index.tsx            # página do ERP360
 ├── pages/Privacidade.tsx      # política de privacidade (/privacidade)
+├── lib/copy.ts                # textos da página e do chat (pt e en)
+├── lib/i18n.tsx               # idioma da interface (PT/EN)
 ├── components/ChatWidget.tsx  # webchat
 ├── components/Logo.tsx        # marca do ERP360 (igual ao public/favicon.svg)
 └── lib/                       # utilitários e evento para abrir o chat

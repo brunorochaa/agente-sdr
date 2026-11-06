@@ -26,7 +26,7 @@ O Deno não precisa estar instalado: os scripts usam `npx deno`.
 
 ## Estrutura
 
-- `src/pages/Index.tsx`: página do ERP360. `src/pages/Privacidade.tsx`: página `/privacidade` (LGPD; o `vercel.json` faz o fallback das rotas para o `index.html`). `src/components/ChatWidget.tsx`: webchat. `src/components/Logo.tsx`: marca, o rosto de óculos escuros "B)" do Bruno (manter igual a `public/favicon.svg`; o `favicon.ico` e o `icon-256.png` vêm do ícone original em `D:BrunoBrunoCentralProjetosResources`). O nome do produto continua ERP360, sem o "B)" no texto. `src/lib/chat-events.ts`: `openChat(texto?)` abre o chat de qualquer lugar da página.
+- `src/pages/Index.tsx`: página do ERP360. `src/pages/Privacidade.tsx`: página `/privacidade` (LGPD; o `vercel.json` faz o fallback das rotas para o `index.html`). `src/components/ChatWidget.tsx`: webchat. `src/components/Logo.tsx`: marca, o rosto de óculos escuros "B)" do Bruno (manter igual a `public/favicon.svg`; o `favicon.ico` e o `icon-256.png` vêm do ícone original em `D:BrunoBrunoCentralProjetosResources`). O nome do produto continua ERP360, sem o "B)" no texto. `src/lib/copy.ts`: todos os textos da página e do chat em pt e en (o inglês segue o tipo do português); `src/lib/i18n.tsx`: `LangProvider`/`useI18n` (idioma salvo no navegador, senão o do navegador); `src/components/LangSwitch.tsx`: bandeiras BR/EUA (`public/flags`). Texto novo na interface vai em `copy.ts`, nos dois idiomas. O agente responde no idioma em que o visitante escrever. `src/lib/chat-events.ts`: `openChat(texto?)` abre o chat de qualquer lugar da página.
 - `supabase/functions/sdr-chat/`: `index.ts` (liga banco e IA reais), `handler.ts` (rota HTTP com dependências injetadas), `agent.ts` (ciclo modelo ↔ ferramentas), `tools.ts` (registrarLead, oferecerHorarios, agendarReuniao), `prompt.ts`, `db.ts` (interface `Repository`), `config.ts`.
 - `supabase/functions/sdr-chat/llm/`: `types.ts` (interface `LlmProvider`), um arquivo por provedor e `index.ts` (escolha por variável).
 - `supabase/functions/_shared/`: `pipefy.ts`, `calcom.ts`, `http.ts`.
@@ -37,7 +37,7 @@ O Deno não precisa estar instalado: os scripts usam `npx deno`.
 - Textos da interface, do prompt e de erros em pt-BR; nomes de código em inglês, exceto as ferramentas do agente (nomes em pt-BR).
 - O navegador nunca acessa as tabelas: tudo passa pela função `sdr-chat`, que usa a service role. Não criar políticas RLS públicas.
 - Novo provedor de IA: implementar `LlmProvider` em `llm/` e registrar em `llm/index.ts`. O ciclo do agente não deve conhecer detalhes de provedor.
-- Página e prompt devem dizer a mesma coisa sobre planos, preços e prazos (`Index.tsx`, incluindo as dúvidas frequentes, e `prompt.ts`).
+- Página e prompt devem dizer a mesma coisa sobre planos, preços e prazos (`copy.ts`, nos dois idiomas, incluindo as dúvidas frequentes, e `prompt.ts`).
 - O e-mail identifica o lead, mas não é prova de identidade: nunca sobrescrever dados de um lead que veio de outra conversa. O agendamento só aceita horários que a própria conversa recebeu de `oferecerHorarios`.
 - Falha no Pipefy ou no Cal.com não pode travar a conversa: as ferramentas devolvem `{ ok: false, erro }` ao modelo.
 - Formatação: `.editorconfig`, Prettier (`.prettierrc.json`) e `deno fmt` (2 espaços, aspas duplas, LF, linhas de até 100).
