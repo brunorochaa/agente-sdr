@@ -132,6 +132,10 @@ The browser only talks to the `sdr-chat` function. The tables have RLS with no p
 - `POST { "sessionId": "...", "message": "..." }` → `{ "response": "..." }`
 - `POST { "sessionId": "...", "action": "history" }` → `{ "messages": [...] }`
 
+## License
+
+[MIT](LICENSE) © 2026 Bruno Rocha do Amaral.
+
 ---
 
 # Agente SDR (Português)
@@ -267,3 +271,7 @@ API da função `sdr-chat`:
 
 - `POST { "sessionId": "...", "message": "..." }` → `{ "response": "..." }`
 - `POST { "sessionId": "...", "action": "history" }` → `{ "messages": [...] }`
+
+## Licença
+
+[MIT](LICENSE) © 2026 Bruno Rocha do Amaral.
