@@ -1,12 +1,15 @@
+import { useEffect, useState } from "react";
 import {
   ArrowRight,
   BarChart3,
   Boxes,
   Check,
+  Menu,
   Receipt,
   ShoppingCart,
   Users,
   Wallet,
+  X,
   type LucideIcon,
 } from "lucide-react";
 import { ChatWidget } from "@/components/ChatWidget";
@@ -113,36 +116,92 @@ const FAQ = [
   },
 ];
 
+const NAV_LINKS = [
+  ["Módulos", "#modulos"],
+  ["Como funciona", "#como-funciona"],
+  ["Planos", "#planos"],
+  ["Dúvidas", "#duvidas"],
+  ["Agendar", "#agendar"],
+];
+
+/**
+ * Flutua por cima do topo (margem negativa do tamanho dele), então o fundo do hero
+ * vai até a borda da tela. No topo fica transparente; ao rolar ganha vidro fosco.
+ */
 function Header() {
+  const [scrolled, setScrolled] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 12);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
   return (
-    <header className="sticky top-0 z-40 pt-3">
+    <header className="sticky top-0 z-40 -mb-[4.25rem] h-[4.25rem] pt-3">
       <div className="page-container">
-        <div className="flex h-14 items-center justify-between rounded-2xl border bg-background/70 px-4 shadow-sm backdrop-blur-xl">
-          <Logo />
-          <nav className="hidden items-center gap-1 text-sm text-muted-foreground md:flex">
-            {[
-              ["Módulos", "#modulos"],
-              ["Como funciona", "#como-funciona"],
-              ["Planos", "#planos"],
-              ["Dúvidas", "#duvidas"],
-            ].map(([label, href]) => (
-              <a
-                key={href}
-                href={href}
-                className="rounded-lg px-3 py-1.5 transition-colors hover:bg-muted hover:text-foreground"
+        <div
+          className={cn(
+            "rounded-2xl border transition-all duration-300",
+            scrolled || menuOpen
+              ? "border-border bg-background/80 shadow-lg shadow-foreground/5 backdrop-blur-xl"
+              : "border-transparent bg-transparent",
+          )}
+        >
+          <div className="flex h-14 items-center justify-between px-4">
+            <Logo />
+            <nav
+              aria-label="Principal"
+              className="hidden items-center gap-1 text-sm text-muted-foreground lg:flex"
+            >
+              {NAV_LINKS.map(([label, href]) => (
+                <a
+                  key={href}
+                  href={href}
+                  className="rounded-lg px-3 py-1.5 transition-colors hover:bg-muted hover:text-foreground"
+                >
+                  {label}
+                </a>
+              ))}
+            </nav>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => openChat()}
+                className="rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-sm transition-all hover:bg-primary/90 hover:shadow-md"
               >
-                {label}
-              </a>
-            ))}
-          </nav>
-          <button
-            type="button"
-            onClick={() => openChat()}
-            className="rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-sm transition-all hover:bg-primary/90 hover:shadow-md"
-          >
-            <span className="sm:hidden">Conversar</span>
-            <span className="hidden sm:inline">Falar com especialista</span>
-          </button>
+                <span className="sm:hidden">Conversar</span>
+                <span className="hidden sm:inline">Falar com especialista</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setMenuOpen((open) => !open)}
+                aria-expanded={menuOpen}
+                aria-controls="menu-mobile"
+                aria-label={menuOpen ? "Fechar menu" : "Abrir menu"}
+                className="grid h-9 w-9 place-items-center rounded-xl border bg-card/70 text-foreground transition-colors hover:bg-card lg:hidden"
+              >
+                {menuOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
+              </button>
+            </div>
+          </div>
+
+          {menuOpen && (
+            <nav id="menu-mobile" aria-label="Menu" className="grid gap-1 border-t p-3 lg:hidden">
+              {NAV_LINKS.map(([label, href]) => (
+                <a
+                  key={href}
+                  href={href}
+                  onClick={() => setMenuOpen(false)}
+                  className="rounded-lg px-3 py-2.5 text-sm font-medium transition-colors hover:bg-muted"
+                >
+                  {label}
+                </a>
+              ))}
+            </nav>
+          )}
         </div>
       </div>
     </header>
@@ -265,7 +324,7 @@ function Hero() {
         className="pointer-events-none absolute -right-24 top-40 h-[24rem] w-[24rem] rounded-full bg-accent/20 blur-3xl"
       />
 
-      <section className="page-container relative grid items-center gap-16 pb-24 pt-16 md:pt-24 lg:grid-cols-[1.1fr_1fr] xl:gap-24 xl:pb-32 xl:pt-28">
+      <section className="page-container relative grid items-center gap-16 pb-24 pt-28 md:pt-36 lg:grid-cols-[1.1fr_1fr] xl:gap-24 xl:pb-32 xl:pt-40">
         <div>
           <p className="mb-6 inline-flex items-center gap-2 rounded-full border bg-card/80 px-3.5 py-1.5 text-xs font-medium text-muted-foreground shadow-sm backdrop-blur">
             <span className="relative flex h-2 w-2">
@@ -348,7 +407,7 @@ function SectionHeading({
 
 function Modules() {
   return (
-    <section id="modulos" className="border-t bg-card/60">
+    <section id="modulos" className="scroll-mt-20 border-t bg-card/60">
       <div className="page-container py-24 xl:py-32">
         <Reveal>
           <SectionHeading
@@ -385,7 +444,7 @@ function Modules() {
 
 function HowItWorks() {
   return (
-    <section id="como-funciona" className="border-t">
+    <section id="como-funciona" className="scroll-mt-20 border-t">
       <div className="page-container py-24 xl:py-32">
         <Reveal>
           <SectionHeading eyebrow="Como funciona" title="Do primeiro contato à operação rodando." />
@@ -419,7 +478,7 @@ function HowItWorks() {
 
 function Plans() {
   return (
-    <section id="planos" className="border-t bg-card/60">
+    <section id="planos" className="scroll-mt-20 border-t bg-card/60">
       <div className="page-container py-24 xl:py-32">
         <Reveal>
           <SectionHeading
@@ -512,7 +571,7 @@ function Plans() {
 
 function Faq() {
   return (
-    <section id="duvidas" className="border-t">
+    <section id="duvidas" className="scroll-mt-20 border-t">
       <div className="page-container grid gap-12 py-24 lg:grid-cols-[1fr_1.6fr] xl:py-32">
         <Reveal>
           <SectionHeading
@@ -545,7 +604,7 @@ function Faq() {
 
 function CallToAction() {
   return (
-    <section className="pb-24">
+    <section id="agendar" className="scroll-mt-20 border-t bg-card/60 py-24 xl:py-32">
       <div className="page-container">
         <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary via-primary to-emerald-900 px-8 py-16 text-primary-foreground shadow-2xl shadow-primary/20 sm:px-14 xl:py-24">
           {/* Anéis decorativos: lembram o ciclo de 360° da marca */}
@@ -619,6 +678,7 @@ function Footer() {
         ["Módulos", "#modulos"],
         ["Como funciona", "#como-funciona"],
         ["Planos", "#planos"],
+        ["Agendar demonstração", "#agendar"],
       ],
     },
     {
