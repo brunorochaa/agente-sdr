@@ -1,5 +1,6 @@
 import { ArrowRight, Check } from "lucide-react";
 import { ChatWidget } from "@/components/ChatWidget";
+import { Logo } from "@/components/Logo";
 import { openChat } from "@/lib/chat-events";
 import { cn } from "@/lib/utils";
 
@@ -54,16 +55,28 @@ const PLANS = [
   },
 ];
 
-function Logo() {
-  return (
-    <a href="#" className="flex items-center gap-2 font-semibold tracking-tight">
-      <span className="grid h-7 w-7 place-items-center rounded-md bg-primary font-mono text-[10px] text-primary-foreground">
-        360
-      </span>
-      ERP360
-    </a>
-  );
-}
+const FAQ = [
+  {
+    question: "Quanto tempo leva para implantar?",
+    answer:
+      "Entre 7 e 15 dias, dependendo dos módulos e do volume de dados que precisam ser migrados. O suporte 24/7 já está incluído desde o primeiro dia.",
+  },
+  {
+    question: "Preciso contratar todos os módulos?",
+    answer:
+      "Não. O Starter cobre Financeiro, Estoque e Vendas. O Professional libera todos os módulos e os relatórios avançados, e você pode crescer de plano quando precisar.",
+  },
+  {
+    question: "Consigo trazer os dados das minhas planilhas?",
+    answer:
+      "Sim. Na demonstração, o especialista avalia como é a sua operação hoje e mostra como seus dados entram no ERP360.",
+  },
+  {
+    question: "Como funciona a conversa com o assistente?",
+    answer:
+      "É um assistente com IA. Ele entende o momento da sua empresa, tira dúvidas sobre o produto e, se você quiser, agenda uma demonstração com o nosso time. Os dados que você informa no chat (nome, e-mail, empresa e necessidade) são usados só para esse contato comercial.",
+  },
+];
 
 function Header() {
   return (
@@ -80,11 +93,14 @@ function Header() {
           <a href="#planos" className="hover:text-foreground">
             Planos
           </a>
+          <a href="#duvidas" className="hover:text-foreground">
+            Dúvidas
+          </a>
         </nav>
         <button
           type="button"
           onClick={() => openChat()}
-          className="rounded-md border border-foreground/15 px-3.5 py-2 text-sm font-medium transition-colors hover:bg-foreground hover:text-background"
+          className="rounded-md bg-primary px-3.5 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
         >
           Falar com especialista
         </button>
@@ -156,47 +172,53 @@ function DashboardPreview() {
 
 function Hero() {
   return (
-    <section className="page-container grid items-center gap-14 pb-24 pt-16 md:pt-24 lg:grid-cols-[1.15fr_1fr] xl:gap-24 xl:pb-32 xl:pt-28">
-      <div>
-        <p className="eyebrow mb-5">Gestão empresarial integrada</p>
-        <h1 className="text-4xl font-semibold leading-[1.08] tracking-tight md:text-[3.4rem] xl:text-[3.9rem]">
-          Financeiro, estoque e vendas falando a mesma língua.
-        </h1>
-        <p className="mt-6 max-w-xl text-lg leading-relaxed text-muted-foreground xl:max-w-2xl xl:text-xl">
-          O ERP360 junta as áreas da sua empresa num sistema só. Menos retrabalho, números
-          confiáveis e relatórios prontos quando você precisa decidir.
-        </p>
+    <div className="relative overflow-hidden">
+      <div className="bg-grid pointer-events-none absolute inset-0" aria-hidden="true" />
+      <section className="page-container relative grid items-center gap-14 pb-24 pt-16 md:pt-24 lg:grid-cols-[1.15fr_1fr] xl:gap-24 xl:pb-32 xl:pt-28">
+        <div>
+          <p className="mb-6 inline-flex items-center gap-2 rounded-full border bg-card px-3 py-1 text-xs text-muted-foreground">
+            <span className="h-1.5 w-1.5 rounded-full bg-accent" />
+            Sua empresa em 360°
+          </p>
+          <h1 className="text-4xl font-semibold leading-[1.08] tracking-tight md:text-[3.4rem] xl:text-[3.9rem]">
+            Financeiro, estoque e vendas falando a mesma língua.
+          </h1>
+          <p className="mt-6 max-w-xl text-lg leading-relaxed text-muted-foreground xl:max-w-2xl xl:text-xl">
+            O ERP360 junta as áreas da sua empresa num sistema só. Menos retrabalho, números
+            confiáveis e relatórios prontos quando você precisa decidir.
+          </p>
 
-        <div className="mt-9 flex flex-wrap items-center gap-4">
-          <button
-            type="button"
-            onClick={() => openChat()}
-            className="group inline-flex items-center gap-2 rounded-md bg-primary px-5 py-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-          >
-            Conversar com um especialista
-            <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-          </button>
-          <a href="#planos" className="text-sm font-medium underline-offset-4 hover:underline">
-            Ver planos e preços
-          </a>
+          <div className="mt-9 flex flex-wrap items-center gap-4">
+            <button
+              type="button"
+              onClick={() => openChat()}
+              className="group inline-flex items-center gap-2 rounded-md bg-primary px-5 py-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+            >
+              Conversar com um especialista
+              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+            </button>
+            <a href="#planos" className="text-sm font-medium underline-offset-4 hover:underline">
+              Ver planos e preços
+            </a>
+          </div>
+
+          <dl className="mt-12 grid max-w-md grid-cols-3 gap-6 border-t pt-6">
+            {[
+              ["7–15 dias", "para implantar"],
+              ["24/7", "de suporte"],
+              ["6", "módulos integrados"],
+            ].map(([value, label]) => (
+              <div key={label}>
+                <dt className="font-mono text-lg font-medium">{value}</dt>
+                <dd className="mt-1 text-xs text-muted-foreground">{label}</dd>
+              </div>
+            ))}
+          </dl>
         </div>
 
-        <dl className="mt-12 grid max-w-md grid-cols-3 gap-6 border-t pt-6">
-          {[
-            ["7–15 dias", "para implantar"],
-            ["24/7", "de suporte"],
-            ["6", "módulos integrados"],
-          ].map(([value, label]) => (
-            <div key={label}>
-              <dt className="font-mono text-lg font-medium">{value}</dt>
-              <dd className="mt-1 text-xs text-muted-foreground">{label}</dd>
-            </div>
-          ))}
-        </dl>
-      </div>
-
-      <DashboardPreview />
-    </section>
+        <DashboardPreview />
+      </section>
+    </div>
   );
 }
 
@@ -337,12 +359,69 @@ function Plans() {
   );
 }
 
+function Faq() {
+  return (
+    <section id="duvidas" className="border-t">
+      <div className="page-container grid gap-12 py-24 lg:grid-cols-[1fr_1.6fr] xl:py-32">
+        <SectionHeading
+          eyebrow="Dúvidas"
+          title="O que costumam perguntar antes de começar."
+          text="Não achou a sua? Pergunte ao assistente, ele responde em segundos."
+        />
+        <div className="divide-y border-y">
+          {FAQ.map((item) => (
+            <details key={item.question} className="group py-5">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-6 font-medium">
+                {item.question}
+                <span className="font-mono text-lg text-muted-foreground transition-transform group-open:rotate-45">
+                  +
+                </span>
+              </summary>
+              <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted-foreground">
+                {item.answer}
+              </p>
+            </details>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function CallToAction() {
+  return (
+    <section className="border-t bg-primary text-primary-foreground">
+      <div className="page-container flex flex-col items-start justify-between gap-8 py-16 md:flex-row md:items-center xl:py-20">
+        <div className="max-w-2xl">
+          <h2 className="text-3xl font-semibold tracking-tight">
+            Vamos ver o ERP360 com os números da sua empresa?
+          </h2>
+          <p className="mt-3 text-primary-foreground/75">
+            Converse com o assistente, conte o que hoje te atrapalha e agende uma demonstração com o
+            nosso time.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => openChat()}
+          className="group inline-flex shrink-0 items-center gap-2 rounded-md bg-background px-5 py-3 text-sm font-medium text-foreground transition-colors hover:bg-background/90"
+        >
+          Agendar demonstração
+          <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+        </button>
+      </div>
+    </section>
+  );
+}
+
 function Footer() {
   return (
     <footer className="border-t">
       <div className="page-container flex flex-col gap-4 py-10 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
         <Logo />
-        <p>© {new Date().getFullYear()} ERP360. Projeto de demonstração.</p>
+        <p className="max-w-md sm:text-right">
+          © {new Date().getFullYear()} ERP360. Projeto de demonstração: empresa e produto fictícios.
+        </p>
       </div>
     </footer>
   );
@@ -356,6 +435,8 @@ const Index = () => (
       <Modules />
       <HowItWorks />
       <Plans />
+      <Faq />
+      <CallToAction />
     </main>
     <Footer />
     <ChatWidget />

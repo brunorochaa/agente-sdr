@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ArrowUp, MessageSquare, RotateCw, X } from "lucide-react";
+import { LogoMark } from "@/components/Logo";
 import { supabase } from "@/integrations/supabase/client";
 import { onOpenChat } from "@/lib/chat-events";
 import { cn } from "@/lib/utils";
@@ -30,6 +31,17 @@ function getSessionId(): string {
     localStorage.setItem(SESSION_KEY, id);
   }
   return id;
+}
+
+/** Quando a função recusa por excesso de uso (429), ela explica o motivo em pt-BR. */
+async function rateLimitMessage(error: unknown): Promise<string | null> {
+  const response = (error as { context?: unknown } | null)?.context;
+  if (!(response instanceof Response) || response.status !== 429) return null;
+  try {
+    return (await response.json()).error ?? null;
+  } catch {
+    return null;
+  }
 }
 
 function formatTime(date: Date) {
@@ -79,12 +91,18 @@ export const ChatWidget = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [historyLoaded, setHistoryLoaded] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
   const [sessionId] = useState(getSessionId);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
-  // Carrega o histórico da sessão (vem da Edge Function, não das tabelas).
+  // Carrega o histórico só quando o chat é aberto pela primeira vez
+  // (assim, quem só lê a página não gera chamadas à função).
   useEffect(() => {
+    if (!isOpen || historyLoaded) return;
+    setHistoryLoaded(true);
+
     supabase.functions
       .invoke("sdr-chat", { body: { action: "history", sessionId } })
       .then(({ data, error }) => {
@@ -103,7 +121,7 @@ export const ChatWidget = () => {
         console.error("Erro ao carregar histórico:", error);
         setMessages([{ role: "assistant", content: WELCOME_FALLBACK, timestamp: new Date() }]);
       });
-  }, [sessionId]);
+  }, [isOpen, historyLoaded, sessionId]);
 
   // Botões da página podem abrir o chat com um texto sugerido.
   useEffect(
@@ -138,6 +156,7 @@ export const ChatWidget = () => {
         { role: "user", content, timestamp: new Date() },
       ]);
       setInput("");
+      setNotice(null);
       setIsLoading(true);
 
       try {
@@ -152,6 +171,7 @@ export const ChatWidget = () => {
         ]);
       } catch (error) {
         console.error("Erro ao enviar mensagem:", error);
+        setNotice(await rateLimitMessage(error));
         setMessages((prev) =>
           prev.map((m, i) => (i === prev.length - 1 ? { ...m, failed: true } : m)),
         );
@@ -167,7 +187,7 @@ export const ChatWidget = () => {
     send(message.content);
   };
 
-  const showSuggestions = !isLoading && messages.length <= 1;
+  const showSuggestions = !isLoading && historyLoaded && messages.length <= 1;
 
   return (
     <>
@@ -192,8 +212,8 @@ export const ChatWidget = () => {
           {/* Cabeçalho */}
           <header className="flex items-center justify-between border-b bg-card px-4 py-3">
             <div className="flex items-center gap-3">
-              <div className="relative flex h-9 w-9 items-center justify-center rounded-full bg-primary font-mono text-[11px] font-medium text-primary-foreground">
-                360
+              <div className="relative">
+                <LogoMark className="h-9 w-9" />
                 <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-card bg-emerald-500" />
               </div>
               <div className="leading-tight">
@@ -249,10 +269,19 @@ export const ChatWidget = () => {
               );
             })}
 
-            {isLoading && (
+            {(isLoading || (isOpen && !historyLoaded)) && (
               <div className="w-fit rounded-2xl rounded-bl-sm border bg-card px-3">
                 <TypingIndicator />
               </div>
+            )}
+
+            {notice && (
+              <p
+                role="alert"
+                className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs text-destructive"
+              >
+                {notice}
+              </p>
             )}
 
             {showSuggestions && (
@@ -308,7 +337,8 @@ export const ChatWidget = () => {
               </button>
             </div>
             <p className="mt-2 text-center text-[11px] text-muted-foreground">
-              Assistente com IA. Suas respostas ajudam a preparar a conversa com o time.
+              Assistente com IA. Nome, e-mail e o que você contar aqui são usados só para o contato
+              comercial.
             </p>
           </form>
         </section>

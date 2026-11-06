@@ -4,7 +4,7 @@
 
 /*
   Tema ERP360: neutros quentes ("papel" e "tinta") com um único verde de destaque.
-  Cores em HSL (formato esperado pelos componentes shadcn/ui).
+  Cores em HSL (o Tailwind monta as cores a partir destas variáveis).
 */
 
 @layer base {
@@ -18,7 +18,7 @@
     --popover: 0 0% 100%;
     --popover-foreground: 200 18% 12%;
 
-    --primary: 164 62% 22%;
+    --primary: 142 59% 30%;
     --primary-foreground: 40 23% 97%;
 
     --secondary: 40 14% 92%;
@@ -35,7 +35,7 @@
 
     --border: 40 10% 86%;
     --input: 40 10% 82%;
-    --ring: 164 62% 22%;
+    --ring: 142 59% 30%;
 
     --radius: 0.5rem;
 
@@ -45,12 +45,12 @@
 
     --sidebar-background: 40 23% 97%;
     --sidebar-foreground: 200 18% 12%;
-    --sidebar-primary: 164 62% 22%;
+    --sidebar-primary: 142 59% 30%;
     --sidebar-primary-foreground: 40 23% 97%;
     --sidebar-accent: 40 14% 92%;
     --sidebar-accent-foreground: 200 18% 12%;
     --sidebar-border: 40 10% 86%;
-    --sidebar-ring: 164 62% 22%;
+    --sidebar-ring: 142 59% 30%;
   }
 }
 
@@ -90,6 +90,16 @@
   /* Largura das seções: acompanha a tela até 1680px, com margens proporcionais */
   .page-container {
     @apply mx-auto w-full max-w-[1680px] px-6 sm:px-10 xl:px-16 2xl:px-20;
+  }
+
+  /* Fundo do topo: grade discreta que some para baixo */
+  .bg-grid {
+    background-image:
+      linear-gradient(hsl(var(--border) / 0.55) 1px, transparent 1px),
+      linear-gradient(90deg, hsl(var(--border) / 0.55) 1px, transparent 1px);
+    background-size: 44px 44px;
+    mask-image: linear-gradient(to bottom, black 0%, transparent 85%);
+    -webkit-mask-image: linear-gradient(to bottom, black 0%, transparent 85%);
   }
 
   /* Rótulo pequeno em fonte mono, usado em seções e no chat */

@@ -54,19 +54,27 @@ npm run check     # typecheck + lint + build do frontend
 npm run format    # Prettier no frontend e deno fmt nas funções
 ```
 
+O GitHub Actions (`.github/workflows/ci.yml`) roda `npm test` e `npm run check` a cada push e pull request.
+
 Os testes usam banco em memória e APIs simuladas, então rodam sem chaves e sem internet. Cobrem o fluxo completo (lead, horários e agendamento) nos três provedores de IA, o formato de cada API, Pipefy, Cal.com e as validações da rota.
 
 ## Configuração
 
 Variáveis das Edge Functions (modelo em `supabase/.env.example`):
 
-| Variável                                       | Obrigatória | Observação                                                   |
-| ---------------------------------------------- | ----------- | ------------------------------------------------------------ |
-| `LLM_PROVIDER`                                 | não         | `gemini` (padrão), `openai` ou `claude`                      |
-| chave do provedor escolhido                    | sim         | `GEMINI_API_KEY`, `OPENAI_API_KEY` ou `ANTHROPIC_API_KEY`    |
-| `GEMINI_MODEL`, `OPENAI_MODEL`, `CLAUDE_MODEL` | não         | padrões: `gemini-2.5-flash`, `gpt-5-mini`, `claude-opus-5-5` |
-| `PIPEFY_API_TOKEN`, `PIPEFY_PIPE_ID`           | não         | sem elas, o lead fica só no banco                            |
-| `CAL_COM_API_KEY`, `CAL_COM_EVENT_TYPE_ID`     | não         | sem elas, horários e link são simulados                      |
+| Variável                                       | Obrigatória | Observação                                                     |
+| ---------------------------------------------- | ----------- | -------------------------------------------------------------- |
+| `LLM_PROVIDER`                                 | não         | `gemini` (padrão), `openai` ou `claude`                        |
+| chave do provedor escolhido                    | sim         | `GEMINI_API_KEY`, `OPENAI_API_KEY` ou `ANTHROPIC_API_KEY`      |
+| `GEMINI_MODEL`, `OPENAI_MODEL`, `CLAUDE_MODEL` | não         | padrões: `gemini-2.5-flash`, `gpt-5-mini`, `claude-sonnet-5-5` |
+| `PIPEFY_API_TOKEN`, `PIPEFY_PIPE_ID`           | não         | sem elas, o lead fica só no banco                              |
+| `CAL_COM_API_KEY`, `CAL_COM_EVENT_TYPE_ID`     | não         | sem elas, horários e link são simulados                        |
+
+O modelo padrão do Claude é o Sonnet 5.5: bem mais barato que o Opus e suficiente para um chat curto com ferramentas. O Haiku 5.5 é ainda mais barato, mas não tem o _fallback_ do servidor (abaixo). Para trocar, use `CLAUDE_MODEL`.
+
+**Limites de uso:** a função é pública e cada mensagem gasta créditos de IA, então há um teto de 40 mensagens por sessão por hora e 60 por minuto no total (`sdr-chat/config.ts`). Passou disso, a função responde 429 com uma mensagem em português.
+
+**Segurança dos leads:** o e-mail identifica o lead, mas qualquer visitante pode digitar o e-mail de outra pessoa. Se o lead já veio de outra conversa, o agente só preenche campos vazios e não troca uma reunião já agendada. O agendamento só aceita um dos horários que foram oferecidos na conversa (eles ficam em `chat_sessions.offered_slots`).
 
 No Claude, o _fallback_ do servidor fica ligado: se o modelo recusar um pedido por engano, a API repete a resposta em um modelo substituto.
 
@@ -78,6 +86,7 @@ Os IDs dos campos do formulário do Pipefy ficam em `supabase/functions/_shared/
 src/
 ├── pages/Index.tsx            # página do ERP360
 ├── components/ChatWidget.tsx  # webchat
+├── components/Logo.tsx        # marca do ERP360 (igual ao public/favicon.svg)
 └── lib/                       # utilitários e evento para abrir o chat
 supabase/
 ├── migrations/                # tabelas chat_sessions, chat_messages e leads
