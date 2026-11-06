@@ -309,8 +309,8 @@ const en: Copy = {
     title: "Today's summary",
     sample: "sample",
     rows: [
-      { label: "Received today", value: "R$ 48,230", delta: "+12%", good: true },
-      { label: "Payable this week", value: "R$ 19,870", delta: "8 bills", good: false },
+      { label: "Received today", value: "$8,950", delta: "+12%", good: true },
+      { label: "Payable this week", value: "$3,690", delta: "8 bills", good: false },
       { label: "Orders being picked", value: "37", delta: "6 urgent", good: false },
     ],
     stockTitle: "Stock levels",
@@ -382,7 +382,7 @@ const en: Copy = {
     items: [
       {
         name: "Starter",
-        price: "R$ 297",
+        price: "$59",
         period: "/month",
         text: "For teams leaving spreadsheets behind and organizing the basics.",
         highlights: ["Finance, inventory and sales", "24/7 support"],
@@ -390,7 +390,7 @@ const en: Copy = {
       },
       {
         name: "Professional",
-        price: "R$ 597",
+        price: "$119",
         period: "/month",
         text: "For growing companies with several connected areas.",
         highlights: ["All modules", "Advanced reports", "24/7 support"],

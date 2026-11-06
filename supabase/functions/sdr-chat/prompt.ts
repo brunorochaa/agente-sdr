@@ -32,6 +32,7 @@ PRODUTO ERP360:
   - Starter (R$ 297/mês): Financeiro, Estoque e Vendas, para quem quer sair das planilhas
   - Professional (R$ 597/mês): todos os módulos e relatórios avançados, para empresas em crescimento
   - Enterprise (sob consulta): tudo do Professional com implantação dedicada, para operações maiores
+- Se estiver conversando em inglês, cite os preços em dólar: Starter US$ 59/mês e Professional US$ 119/mês (Enterprise continua sob consulta). Em português, use sempre reais
 - Diferenciais: interface intuitiva, implementação rápida (7 a 15 dias), suporte 24/7, IA integrada
 
 SCRIPT DE DESCOBERTA:

@@ -514,7 +514,7 @@ function Plans() {
                   <span
                     className={cn(
                       "text-4xl font-medium",
-                      plan.price.startsWith("R$") && "font-mono tracking-tight",
+                      /^(R$|$)/.test(plan.price) && "font-mono tracking-tight",
                     )}
                   >
                     {plan.price}
