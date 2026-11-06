@@ -4,7 +4,7 @@
 
 ## O que é
 
-Agente SDR (pré-vendas) com IA para o ERP360, um ERP fictício: webchat que qualifica o lead, registra no Pipefy e agenda reunião no Cal.com. Desafio técnico de processo seletivo (2025), feito no Lovable e reorganizado em 2026. Uso e estrutura no `README.md`.
+Agente SDR (pré-vendas) com IA para o ERP360, um ERP fictício: webchat que qualifica o lead, registra no Pipefy e agenda reunião no Cal.com. Desafio técnico de processo seletivo (2025), feito no Lovable e reorganizado em 2026. Uso e estrutura no `README.md`. **Mapa completo do sistema e receitas do que fazer quando algo muda: `docs/MAPA_DO_SISTEMA.md` (leia antes de mexer; atualize quando mudar algo descrito lá).**
 
 ## Stack
 
@@ -51,6 +51,8 @@ O Deno não precisa estar instalado: os scripts usam `npx deno`.
 - Nunca testado de ponta a ponta com chaves reais. A integração real com o Cal.com (API v2) foi escrita pela documentação.
 - Deploy: a Vercel publica a `main` a cada push e precisa das variáveis `VITE_SUPABASE_*` configuradas no painel dela (o `.env` não é versionado). Em 2026-11-06 o site ficou em branco porque o `.env` saiu do git antes disso; o `client.ts` agora não derruba a página quando faltam as variáveis.
 - Após alterações de código: rode `npm test` e `npm run check`.
+- Mudou o prompt ou as ferramentas? O push não atualiza o agente: é preciso `supabase functions deploy sdr-chat --yes` (deploy em produção; o usuário roda com `! comando` se o ambiente bloquear).
+- Em 2026-11-06 entrou a versão em inglês (`copy.ts`, `i18n.tsx`, bandeiras), a página `/privacidade` e o `vercel.json`; o inglês usa preços em dólar (US$ 59 e US$ 119), e o prompt manda citá-los assim.
 
 ## Regras gerais
 

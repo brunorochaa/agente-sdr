@@ -2,13 +2,16 @@
 
 Agente de pré-vendas (SDR) com IA para o ERP360, um ERP fictício. Um webchat conversa com o visitante, qualifica o interesse, registra o lead no Pipefy e agenda a reunião no Cal.com. Começou como desafio técnico de um processo seletivo (2025), feito no Lovable, e foi reorganizado em 2026.
 
+> **Documentação completa:** o [mapa do sistema](docs/MAPA_DO_SISTEMA.md) explica onde fica cada peça, como o agente funciona e **o que fazer quando algo muda** (texto, prompt, banco, provedor de IA, deploy).
+
 ## O que faz
 
-- Página do ERP360 com módulos, etapas e planos, e um chat no canto da tela.
+- Página do ERP360 com módulos, diferenciais, etapas, planos, dúvidas frequentes e política de privacidade (`/privacidade`), e um chat no canto da tela.
 - O agente se apresenta, pergunta sobre a empresa, as dores e o prazo, e pergunta diretamente se o visitante quer falar com o time.
 - Assim que sabe nome e e-mail, registra o lead no banco e cria um card no Pipefy (e atualiza o card a cada dado novo).
 - Com interesse confirmado, oferece horários livres e agenda a reunião no Cal.com, devolvendo o link.
 - Guarda a conversa: quem volta ao site continua de onde parou.
+- Site e chat em **português e inglês** (botão com as bandeiras; o agente responde no idioma do visitante, com preços em dólar no inglês).
 - Funciona com **Gemini, OpenAI (ChatGPT) ou Claude**, escolhidos por uma variável de ambiente.
 
 Sem chaves do Pipefy e do Cal.com, o lead fica só no banco e o agendamento roda em modo demonstração.
@@ -46,7 +49,7 @@ Para rodar as funções localmente: `supabase start` e `supabase functions serve
 
 ### Deploy
 
-O frontend está na Vercel, que publica a cada push na `main`. O `.env` não vai para o git, então configure `VITE_SUPABASE_URL` e `VITE_SUPABASE_PUBLISHABLE_KEY` em **Settings → Environment Variables** do projeto na Vercel. Sem elas, a página abre, mas o chat fica indisponível. As Edge Functions são publicadas à parte, com `supabase functions deploy sdr-chat`.
+O frontend está na Vercel, que publica a cada push na `main` (o `vercel.json` manda as rotas para o `index.html`). O `.env` não vai para o git, então configure `VITE_SUPABASE_URL` e `VITE_SUPABASE_PUBLISHABLE_KEY` em **Settings → Environment Variables** do projeto na Vercel. Sem elas, a página abre, mas o chat fica indisponível. **As Edge Functions são publicadas à parte**, com `supabase functions deploy sdr-chat --yes`: mudar o prompt ou as ferramentas só vale no ar depois desse deploy.
 
 ## Testes e qualidade
 
@@ -82,6 +85,18 @@ No Claude, o _fallback_ do servidor fica ligado: se o modelo recusar um pedido p
 
 Os IDs dos campos do formulário do Pipefy ficam em `supabase/functions/_shared/pipefy.ts` (`FIELD_IDS`). Crie campos com esses IDs no pipe ou ajuste a constante.
 
+## Quando você muda algo
+
+| Mudou                           | Faça                                                                                              |
+| ------------------------------- | ------------------------------------------------------------------------------------------------- |
+| Texto, preço ou plano da página | Edite `src/lib/copy.ts` (pt e en) **e** `supabase/functions/sdr-chat/prompt.ts`; deploy da função |
+| Prompt ou ferramentas do agente | `npm test` → commit/push → `supabase functions deploy sdr-chat --yes`                             |
+| Tabelas do banco                | Migration nova em `supabase/migrations/` → `supabase db push --remote`                            |
+| Provedor ou modelo de IA        | `supabase secrets set LLM_PROVIDER=...` (ou `*_MODEL`); sem deploy de código                      |
+| Qualquer código                 | `npm test` e `npm run check` antes do commit                                                      |
+
+Os passos detalhados de cada caso estão no [mapa do sistema](docs/MAPA_DO_SISTEMA.md#6-receitas-mudei-x-o-que-faço).
+
 ## Estrutura
 
 ```text
@@ -90,9 +105,11 @@ src/
 ├── pages/Privacidade.tsx      # política de privacidade (/privacidade)
 ├── lib/copy.ts                # textos da página e do chat (pt e en)
 ├── lib/i18n.tsx               # idioma da interface (PT/EN)
+├── components/LangSwitch.tsx  # botões de idioma (bandeiras)
 ├── components/ChatWidget.tsx  # webchat
 ├── components/Logo.tsx        # marca do ERP360 (igual ao public/favicon.svg)
 └── lib/                       # utilitários e evento para abrir o chat
+docs/MAPA_DO_SISTEMA.md        # mapa completo do sistema e receitas de manutenção
 supabase/
 ├── migrations/                # tabelas chat_sessions, chat_messages e leads
 └── functions/
