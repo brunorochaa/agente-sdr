@@ -69,8 +69,9 @@ Arquivos estáticos em `public/`: `favicon.svg`, `favicon.ico`, `icon-256.png`, 
 | `20251108162911_...sql`                        | Cria `chat_sessions`, `chat_messages` e `leads`.                             |
 | `20251110000000_restringir_acesso_publico.sql` | Fecha o acesso público (RLS sem políticas). **Importante para a segurança.** |
 | `20261106000000_horarios_e_limite.sql`         | Coluna `chat_sessions.offered_slots` e índice para o limite de uso.          |
+| `20261107000000_prazo_do_lead.sql`             | Coluna `leads.deadline` (prazo), enviada ao campo `prazo` do Pipefy.         |
 
-Tabelas: `chat_sessions` (uma por visitante; guarda os horários oferecidos), `chat_messages` (histórico: papel e texto), `leads` (e-mail único, nome, empresa, necessidade, interesse, reunião, id do card no Pipefy).
+Tabelas: `chat_sessions` (uma por visitante; guarda os horários oferecidos), `chat_messages` (histórico: papel e texto), `leads` (e-mail único, nome, empresa, necessidade, prazo, interesse, reunião, id do card no Pipefy).
 
 ### Outros
 
@@ -165,8 +166,9 @@ O CI repete `npm test` e `npm run check`. Convenções: 2 espaços, aspas duplas
 
 ### Mudei campos do Pipefy ou a integração do Cal.com
 
-- Pipefy: os IDs dos campos estão em `_shared/pipefy.ts` (`FIELD_IDS`); o pipe precisa ter campos com esses IDs.
-- Cal.com: o tipo de evento vem de `CAL_COM_EVENT_TYPE_ID`. A integração foi escrita pela documentação da API v2 e **nunca foi testada de ponta a ponta com chaves reais**.
+- Pipefy: os IDs dos campos estão em `_shared/pipefy.ts` (`FIELD_IDS`: nome, email, empresa, necessidade, prazo, interesse_confirmado, meeting_link, meeting_datetime); o pipe precisa ter campos com esses IDs. Ao agendar, a conversa do chat vai como **comentário** no card (`addCardComment`, em `tools.ts`).
+- Cal.com: o tipo de evento vem de `CAL_COM_EVENT_TYPE_ID`. **Sem as duas variáveis do Cal.com não há mais link nem horários simulados**: as ferramentas devolvem `{ ok: false, erro }` e o prompt manda o agente avisar que não deu para agendar. O modo demonstração só existe com `CAL_COM_MOCK=1` (o `setEnv` dos testes liga por padrão). Como pegar as credenciais: chave em app.cal.com → Settings → Developer → API keys (marque "Nunca expira"); o ID do evento não aparece na URL pública, mas dá para listar com `GET https://api.cal.com/v2/event-types` (cabeçalhos `Authorization: Bearer <chave>` e `cal-api-version: 2024-06-14`). Configurado em 2026-11-06 com o evento `30min`.
+- A integração com o Cal.com foi escrita pela documentação da API v2 e o **agendamento ainda não foi confirmado ponta a ponta** (as chaves estão no ar desde 2026-11-06).
 - Deploy da função depois.
 
 ### Mudei a marca (logo/ícone)
@@ -198,7 +200,8 @@ Atualize, no mesmo commit: este arquivo, o `README.md` e o `CLAUDE.md` **e** o `
 
 ## 7. Estado atual e pendências (atualizado em 2026-11-06)
 
-- **No ar**: site na Vercel (`brunorochaa-agente-sdr.vercel.app`, publica a cada push na `main`), projeto Supabase `elite-agente-sdr` com as 3 migrations aplicadas e a função `sdr-chat` publicada. O chat respondeu em produção; o fluxo completo de agendamento ainda precisa ser testado com chaves reais.
+- **No ar**: site na Vercel (`brunorochaa-agente-sdr.vercel.app`, publica a cada push na `main`), projeto Supabase `elite-agente-sdr` com as 4 migrations aplicadas (a última, `deadline`, rodada à mão no SQL Editor) e a função `sdr-chat` publicada, agora com as chaves do Cal.com e do Pipefy. O chat respondeu em produção; o fluxo completo de agendamento ainda precisa ser testado com chaves reais.
+- **2026-11-06 (tarde)**: no primeiro teste real o card do Pipefy veio sem `prazo` e com link `cal.com/erp360/demo` (404), porque o Cal.com não estava configurado e o código simulava o link. Corrigido: campo `prazo`, conversa como comentário no card, e erro claro sem chave do Cal.com.
 - **Pendências do dono**: trocar a senha do banco (foi colada em um chat); conferir no Table Editor se havia dado real exposto antes do RLS ser fechado; testar o agendamento de ponta a ponta.
 - **Sobras do Lovable**: `bun.lockb`, `components.json` e `public/placeholder.svg` foram removidos em 2026-11-06 (nada os usava). O gerenciador de pacotes do projeto é o npm (`package-lock.json`).
 - **Ideias não feitas**: ação agendada no GitHub para evitar a pausa do Supabase gratuito; imagem própria de compartilhamento (`og-image`); atualização em lote dos cards antigos do Pipefy.
@@ -211,4 +214,6 @@ Atualize, no mesmo commit: este arquivo, o `README.md` e o `CLAUDE.md` **e** o `
 - **Chat com altura**: a área de mensagens do `ChatWidget` precisa de `min-h-0` para rolar por dentro; sem isso o painel inteiro rola ao focar o campo.
 - **Deploy de função não é automático**: o push atualiza só o site. Prompt e ferramentas só mudam no ar depois do `supabase functions deploy`.
 - **Cabeçalho flutuante**: o `<header>` não captura cliques (`pointer-events-none`); só a barra interna (`pointer-events-auto`). Mantenha isso ao mexer nele.
+- **`supabase db push --remote` pode falhar** com `permission denied to alter role ... cli_login_postgres` (login temporário do CLI). Saída usada: colar o SQL da migration no SQL Editor do painel (as migrations usam `IF NOT EXISTS`) ou usar `SUPABASE_DB_PASSWORD`.
+- **Chave do Cal.com**: criada com "Nunca expira"; com validade de 30 dias o agendamento pararia sem aviso. Nunca cole chaves no chat.
 - **Chave anon não é segredo**; `service_role` é. Confundir as duas é o erro mais grave possível aqui.
