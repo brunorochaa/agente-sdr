@@ -63,6 +63,19 @@
     scroll-behavior: smooth;
   }
 
+  /* Em telas grandes, tudo (texto, espaçamentos, cards) cresce um pouco junto */
+  @media (min-width: 1680px) {
+    html {
+      font-size: 17px;
+    }
+  }
+
+  @media (min-width: 2200px) {
+    html {
+      font-size: 18px;
+    }
+  }
+
   body {
     @apply bg-background font-sans text-foreground antialiased;
     font-feature-settings: "ss01", "tnum";
@@ -74,6 +87,11 @@
 }
 
 @layer components {
+  /* Largura das seções: acompanha a tela até 1680px, com margens proporcionais */
+  .page-container {
+    @apply mx-auto w-full max-w-[1680px] px-6 sm:px-10 xl:px-16 2xl:px-20;
+  }
+
   /* Rótulo pequeno em fonte mono, usado em seções e no chat */
   .eyebrow {
     @apply font-mono text-xs uppercase tracking-[0.14em] text-muted-foreground;

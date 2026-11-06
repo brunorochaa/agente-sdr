@@ -68,7 +68,7 @@ function Logo() {
 function Header() {
   return (
     <header className="sticky top-0 z-40 border-b bg-background/85 backdrop-blur">
-      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
+      <div className="page-container flex h-16 items-center justify-between">
         <Logo />
         <nav className="hidden items-center gap-8 text-sm text-muted-foreground md:flex">
           <a href="#modulos" className="hover:text-foreground">
@@ -156,13 +156,13 @@ function DashboardPreview() {
 
 function Hero() {
   return (
-    <section className="mx-auto grid max-w-6xl items-center gap-14 px-6 pb-24 pt-16 md:pt-24 lg:grid-cols-[1.1fr_1fr]">
+    <section className="page-container grid items-center gap-14 pb-24 pt-16 md:pt-24 lg:grid-cols-[1.15fr_1fr] xl:gap-24 xl:pb-32 xl:pt-28">
       <div>
         <p className="eyebrow mb-5">Gestão empresarial integrada</p>
-        <h1 className="text-4xl font-semibold leading-[1.08] tracking-tight md:text-[3.4rem]">
+        <h1 className="text-4xl font-semibold leading-[1.08] tracking-tight md:text-[3.4rem] xl:text-[3.9rem]">
           Financeiro, estoque e vendas falando a mesma língua.
         </h1>
-        <p className="mt-6 max-w-xl text-lg leading-relaxed text-muted-foreground">
+        <p className="mt-6 max-w-xl text-lg leading-relaxed text-muted-foreground xl:max-w-2xl xl:text-xl">
           O ERP360 junta as áreas da sua empresa num sistema só. Menos retrabalho, números
           confiáveis e relatórios prontos quando você precisa decidir.
         </p>
@@ -221,7 +221,7 @@ function SectionHeading({
 function Modules() {
   return (
     <section id="modulos" className="border-t bg-card">
-      <div className="mx-auto max-w-6xl px-6 py-24">
+      <div className="page-container py-24 xl:py-32">
         <SectionHeading
           eyebrow="Módulos"
           title="Cada área no seu lugar, todas conectadas."
@@ -229,7 +229,7 @@ function Modules() {
         />
         <ol className="grid border-l border-t sm:grid-cols-2 lg:grid-cols-3">
           {MODULES.map((module, index) => (
-            <li key={module.name} className="border-b border-r p-7">
+            <li key={module.name} className="border-b border-r p-7 xl:p-10">
               <span className="font-mono text-xs text-muted-foreground">
                 {String(index + 1).padStart(2, "0")}
               </span>
@@ -246,9 +246,9 @@ function Modules() {
 function HowItWorks() {
   return (
     <section id="como-funciona" className="border-t">
-      <div className="mx-auto max-w-6xl px-6 py-24">
+      <div className="page-container py-24 xl:py-32">
         <SectionHeading eyebrow="Como funciona" title="Do primeiro contato à operação rodando." />
-        <ol className="grid gap-10 md:grid-cols-3">
+        <ol className="grid gap-10 md:grid-cols-3 xl:gap-16">
           {STEPS.map((step, index) => (
             <li key={step.title} className="relative border-t-2 border-foreground pt-6">
               <span className="font-mono text-xs text-muted-foreground">Etapa {index + 1}</span>
@@ -265,13 +265,13 @@ function HowItWorks() {
 function Plans() {
   return (
     <section id="planos" className="border-t bg-card">
-      <div className="mx-auto max-w-6xl px-6 py-24">
+      <div className="page-container py-24 xl:py-32">
         <SectionHeading
           eyebrow="Planos"
           title="Preço claro, sem surpresa."
           text="Não sabe qual escolher? Conte sobre sua empresa no chat e indicamos o plano certo."
         />
-        <div className="grid gap-6 lg:grid-cols-3">
+        <div className="grid gap-6 lg:grid-cols-3 xl:gap-8">
           {PLANS.map((plan) => (
             <article
               key={plan.name}
@@ -340,7 +340,7 @@ function Plans() {
 function Footer() {
   return (
     <footer className="border-t">
-      <div className="mx-auto flex max-w-6xl flex-col gap-4 px-6 py-10 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+      <div className="page-container flex flex-col gap-4 py-10 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
         <Logo />
         <p>© {new Date().getFullYear()} ERP360. Projeto de demonstração.</p>
       </div>
