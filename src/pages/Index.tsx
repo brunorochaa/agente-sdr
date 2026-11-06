@@ -108,7 +108,7 @@ function Header() {
               <button
                 type="button"
                 onClick={() => openChat()}
-                className="rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-sm transition-all hover:bg-primary/90 hover:shadow-md"
+                className="hidden rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-sm transition-all hover:bg-primary/90 hover:shadow-md sm:block"
               >
                 <span className="md:hidden">{t.header.ctaShort}</span>
                 <span className="hidden md:inline">{t.header.ctaLong}</span>
