@@ -195,7 +195,7 @@ export const ChatWidget = () => {
         <button
           type="button"
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-5 right-5 z-50 flex items-center gap-2 rounded-full bg-foreground py-3 pl-4 pr-5 text-sm font-medium text-background shadow-lg transition-transform hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          className="fixed bottom-5 right-5 z-50 flex items-center gap-2 rounded-full bg-primary py-3.5 pl-4 pr-5 text-sm font-medium text-primary-foreground shadow-xl shadow-primary/30 transition-transform hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
           aria-label="Abrir chat com especialista"
         >
           <MessageSquare className="h-4 w-4" />
@@ -207,10 +207,10 @@ export const ChatWidget = () => {
         <section
           role="dialog"
           aria-label="Chat com especialista ERP360"
-          className="fixed inset-0 z-50 flex flex-col overflow-hidden bg-chat-background duration-200 animate-in fade-in slide-in-from-bottom-2 sm:inset-auto sm:bottom-5 sm:right-5 sm:h-[620px] sm:max-h-[calc(100vh-2.5rem)] sm:w-[400px] sm:rounded-xl sm:border sm:shadow-2xl"
+          className="fixed inset-0 z-50 flex flex-col overflow-hidden bg-chat-background duration-200 animate-in fade-in slide-in-from-bottom-2 sm:inset-auto sm:bottom-5 sm:right-5 sm:h-[620px] sm:max-h-[calc(100vh-2.5rem)] sm:w-[400px] sm:rounded-3xl sm:border sm:shadow-2xl"
         >
           {/* Cabeçalho */}
-          <header className="flex items-center justify-between border-b bg-card px-4 py-3">
+          <header className="flex items-center justify-between border-b bg-gradient-to-b from-card to-muted/40 px-4 py-3">
             <div className="flex items-center gap-3">
               <div className="relative">
                 <LogoMark className="h-9 w-9" />
@@ -310,7 +310,7 @@ export const ChatWidget = () => {
             }}
             className="border-t bg-card p-3"
           >
-            <div className="flex items-end gap-2 rounded-lg border bg-background px-3 py-2 focus-within:border-primary">
+            <div className="flex items-end gap-2 rounded-2xl border bg-background px-3 py-2 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/15">
               <textarea
                 ref={inputRef}
                 rows={1}
@@ -330,7 +330,7 @@ export const ChatWidget = () => {
               <button
                 type="submit"
                 disabled={isLoading || !input.trim()}
-                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground transition-opacity disabled:opacity-30"
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground transition-opacity disabled:opacity-30"
                 aria-label="Enviar mensagem"
               >
                 <ArrowUp className="h-4 w-4" />
