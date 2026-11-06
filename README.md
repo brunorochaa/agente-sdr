@@ -1,4 +1,4 @@
-# Elite Agente SDR
+# Agente SDR
 
 Agente de pré-vendas (SDR) com IA para o ERP360, um ERP fictício. Um webchat conversa com o visitante, qualifica o interesse, registra o lead no Pipefy e agenda a reunião no Cal.com. Começou como desafio técnico de um processo seletivo (2025), feito no Lovable, e foi reorganizado em 2026.
 
