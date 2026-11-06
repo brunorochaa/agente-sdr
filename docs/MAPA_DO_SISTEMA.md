@@ -105,7 +105,7 @@ Na Vercel: **Settings → Environment Variables** (Production), depois **Redeplo
 
 ### Edge Functions (`supabase secrets set`, modelo em `supabase/.env.example`)
 
-`LLM_PROVIDER` (`gemini`, `openai` ou `claude`), a chave do provedor (`GEMINI_API_KEY`, `OPENAI_API_KEY` ou `ANTHROPIC_API_KEY`), `*_MODEL` opcionais, `PIPEFY_API_TOKEN` e `PIPEFY_PIPE_ID`, `CAL_COM_API_KEY` e `CAL_COM_EVENT_TYPE_ID`. `SUPABASE_URL` e `SUPABASE_SERVICE_ROLE_KEY` o Supabase injeta sozinho. Sem as chaves do Pipefy e do Cal.com, o lead fica só no banco e os horários são simulados.
+`LLM_PROVIDER` (`gemini`, `openai` ou `claude`), a chave do provedor (`GEMINI_API_KEY`, `OPENAI_API_KEY` ou `ANTHROPIC_API_KEY`), `*_MODEL` opcionais, `PIPEFY_API_TOKEN` e `PIPEFY_PIPE_ID`, `CAL_COM_API_KEY` e `CAL_COM_EVENT_TYPE_ID`. `SUPABASE_URL` e `SUPABASE_SERVICE_ROLE_KEY` o Supabase injeta sozinho. Sem as chaves do Pipefy e do Cal.com, o lead fica só no banco e, sem as do Cal.com, o agente avisa que não deu para agendar (só com `CAL_COM_MOCK=1`, usado nos testes, os horários são simulados). A conversa vai como comentário no card do Pipefy ao agendar, e o prazo vai para o campo `prazo` (migration `20261107000000_prazo_do_lead.sql`: `supabase db push`).
 
 ### Regras de segredo
 

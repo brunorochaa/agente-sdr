@@ -71,6 +71,7 @@ export class MemoryRepository implements Repository {
       name: null,
       company: null,
       need: null,
+      deadline: null,
       interest_confirmed: false,
       meeting_link: null,
       meeting_datetime: null,
@@ -180,11 +181,14 @@ const MANAGED_ENV = [
   "PIPEFY_PIPE_ID",
   "CAL_COM_API_KEY",
   "CAL_COM_EVENT_TYPE_ID",
+  "CAL_COM_MOCK",
 ];
 
 /** Define as variáveis do teste e limpa todas as outras que o projeto usa. */
 export function setEnv(values: Record<string, string>) {
   for (const key of MANAGED_ENV) Deno.env.delete(key);
+  // Padrão dos testes: Cal.com simulado. Passe CAL_COM_MOCK: "" para testar a falta de chave.
+  Deno.env.set("CAL_COM_MOCK", "1");
   for (const [key, value] of Object.entries(values)) Deno.env.set(key, value);
 }
 

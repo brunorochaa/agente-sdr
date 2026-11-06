@@ -1,6 +1,7 @@
 // Integração com o Cal.com (API v2).
 // Se CAL_COM_API_KEY e CAL_COM_EVENT_TYPE_ID estiverem configurados, usa a API real.
-// Caso contrário, funciona em modo demonstração (horários e link simulados).
+// Sem elas, falha com um erro claro (o agente avisa o cliente que não deu para agendar).
+// O modo demonstração (horários e link simulados) só existe com CAL_COM_MOCK=1 (usado nos testes).
 
 const CAL_API = "https://api.cal.com/v2";
 export const DEFAULT_TZ = "America/Sao_Paulo";
@@ -22,6 +23,14 @@ function calConfig() {
   const apiKey = Deno.env.get("CAL_COM_API_KEY");
   const eventTypeId = Number(Deno.env.get("CAL_COM_EVENT_TYPE_ID"));
   return apiKey && eventTypeId ? { apiKey, eventTypeId } : null;
+}
+
+function mockEnabled(): boolean {
+  return Deno.env.get("CAL_COM_MOCK") === "1";
+}
+
+function notConfigured(): never {
+  throw new Error("Cal.com não configurado (faltam CAL_COM_API_KEY e CAL_COM_EVENT_TYPE_ID)");
 }
 
 export function formatSlot(iso: string, timeZone = DEFAULT_TZ): string {
@@ -54,7 +63,7 @@ function mockSlots(timeZone: string): Slot[] {
 
 export async function getAvailableSlots(timeZone = DEFAULT_TZ, limit = 6): Promise<Slot[]> {
   const cfg = calConfig();
-  if (!cfg) return mockSlots(timeZone).slice(0, limit);
+  if (!cfg) return mockEnabled() ? mockSlots(timeZone).slice(0, limit) : notConfigured();
 
   const start = new Date();
   const end = new Date(start.getTime() + 7 * 86_400_000);
@@ -91,6 +100,7 @@ export async function bookMeeting(params: {
 
   const cfg = calConfig();
   if (!cfg) {
+    if (!mockEnabled()) notConfigured();
     return {
       meetingLink: `https://cal.com/erp360/demo?date=${encodeURIComponent(start)}`,
       start,

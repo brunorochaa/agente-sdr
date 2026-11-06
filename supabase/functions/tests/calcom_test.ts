@@ -18,6 +18,16 @@ Deno.test("modo demonstração: só dias úteis, às 10h e 14h de Brasília", as
   }
 });
 
+Deno.test("sem chave do Cal.com e sem modo demonstração: erro claro, nada simulado", async () => {
+  setEnv({ CAL_COM_MOCK: "" });
+  await assertRejects(() => getAvailableSlots(), Error, "Cal.com não configurado");
+  await assertRejects(
+    () => bookMeeting({ name: "Ana", email: "ana@acme.com", start: "2026-11-10T13:00:00.000Z" }),
+    Error,
+    "Cal.com não configurado",
+  );
+});
+
 Deno.test("API real: busca horários e agenda com os cabeçalhos corretos", async () => {
   setEnv(CAL_ENV);
   const fake = new FakeFetch()

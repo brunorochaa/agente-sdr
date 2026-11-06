@@ -13,6 +13,7 @@ export interface LeadRow {
   name: string | null;
   company: string | null;
   need: string | null;
+  deadline: string | null;
   interest_confirmed: boolean | null;
   meeting_link: string | null;
   meeting_datetime: string | null;

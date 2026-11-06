@@ -1,6 +1,11 @@
 import { bookMeeting, DEFAULT_TZ, formatSlot, getAvailableSlots } from "../_shared/calcom.ts";
 import { errorMessage } from "../_shared/http.ts";
-import { createLeadCard, pipefyConfigured, updateLeadCard } from "../_shared/pipefy.ts";
+import {
+  addCardComment,
+  createLeadCard,
+  pipefyConfigured,
+  updateLeadCard,
+} from "../_shared/pipefy.ts";
 import type { LeadInput, LeadRow, Repository } from "./db.ts";
 import type { ToolResult, ToolSpec } from "./llm/types.ts";
 
@@ -27,7 +32,11 @@ export const toolSpecs: ToolSpec[] = [
         company: { type: "string", description: "Nome da empresa" },
         need: {
           type: "string",
-          description: "Necessidade ou dor identificada, incluindo o prazo se informado",
+          description: "Necessidade ou dor identificada",
+        },
+        deadline: {
+          type: "string",
+          description: "Prazo que o lead informou para resolver (ex.: 'este mês', '3 meses')",
         },
         interest_confirmed: {
           type: "boolean",
@@ -89,6 +98,21 @@ async function syncWithPipefy(repo: Repository, lead: LeadRow): Promise<ToolResu
   }
 }
 
+/** Anexa a conversa ao card do Pipefy como comentário. Falhas não interrompem a conversa. */
+async function sendTranscript(repo: Repository, sessionUuid: string, email: string) {
+  if (!pipefyConfigured()) return;
+  try {
+    const cardId = (await repo.findLead(email))?.pipefy_card_id;
+    if (!cardId) return;
+    const history = await repo.loadHistory(sessionUuid);
+    if (!history.length) return;
+    const lines = history.map((m) => `${m.role === "user" ? "Cliente" : "Agente"}: ${m.content}`);
+    await addCardComment(cardId, `Conversa do chat até o agendamento:\n\n${lines.join("\n\n")}`);
+  } catch (error) {
+    console.error("Erro ao enviar a conversa ao Pipefy:", error);
+  }
+}
+
 /**
  * O e-mail identifica o lead, mas qualquer visitante pode digitar o e-mail de outra pessoa.
  * Se o lead já existe e veio de outra conversa, só preenchemos o que ainda está vazio:
@@ -105,7 +129,7 @@ async function protectForeignLead(
   if (existing.session_id === sessionUuid) return lead;
 
   const safe: LeadInput = { email: lead.email };
-  for (const key of ["name", "company", "need", "interest_confirmed"] as const) {
+  for (const key of ["name", "company", "need", "deadline", "interest_confirmed"] as const) {
     const current = existing[key];
     if ((current === null || current === "") && lead[key] !== undefined) {
       (safe as Record<string, unknown>)[key] = lead[key];
@@ -125,6 +149,7 @@ async function registrarLead({ repo, sessionUuid }: ToolContext, args: ToolArgs)
   if (text(args.name)) lead.name = text(args.name);
   if (text(args.company)) lead.company = text(args.company);
   if (text(args.need)) lead.need = text(args.need);
+  if (text(args.deadline)) lead.deadline = text(args.deadline);
   if (typeof args.interest_confirmed === "boolean") {
     lead.interest_confirmed = args.interest_confirmed;
   }
@@ -184,6 +209,7 @@ async function agendarReuniao({ repo, sessionUuid }: ToolContext, args: ToolArgs
     meeting_datetime: booking.start,
   });
   await syncWithPipefy(repo, lead);
+  await sendTranscript(repo, sessionUuid, email);
 
   return {
     ok: true,

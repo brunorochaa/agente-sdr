@@ -9,6 +9,7 @@ export const FIELD_IDS = {
   email: "email",
   company: "empresa",
   need: "necessidade",
+  deadline: "prazo",
   interestConfirmed: "interesse_confirmado",
   meetingLink: "meeting_link",
   meetingDatetime: "meeting_datetime",
@@ -19,6 +20,7 @@ export interface LeadData {
   email: string;
   company?: string | null;
   need?: string | null;
+  deadline?: string | null;
   interest_confirmed?: boolean | null;
   meeting_link?: string | null;
   meeting_datetime?: string | null;
@@ -56,6 +58,7 @@ function toFields(lead: Partial<LeadData>) {
     [FIELD_IDS.email, lead.email],
     [FIELD_IDS.company, lead.company],
     [FIELD_IDS.need, lead.need],
+    [FIELD_IDS.deadline, lead.deadline],
     [FIELD_IDS.interestConfirmed, yesNo(lead.interest_confirmed)],
     [FIELD_IDS.meetingLink, lead.meeting_link],
     [FIELD_IDS.meetingDatetime, lead.meeting_datetime],
@@ -95,4 +98,14 @@ export async function updateLeadCard(cardId: string, lead: Partial<LeadData>): P
       { input: { card_id: cardId, field_id: field.field_id, new_value: field.field_value } },
     );
   }
+}
+
+/** Registra um comentário no card (usado para anexar a conversa do chat). */
+export async function addCardComment(cardId: string, text: string): Promise<void> {
+  await gql(
+    `mutation AddComment($input: CreateCommentInput!) {
+      createComment(input: $input) { comment { id } }
+    }`,
+    { input: { card_id: cardId, text } },
+  );
 }
