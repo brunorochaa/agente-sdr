@@ -89,6 +89,31 @@ async function syncWithPipefy(repo: Repository, lead: LeadRow): Promise<ToolResu
   }
 }
 
+/**
+ * O e-mail identifica o lead, mas qualquer visitante pode digitar o e-mail de outra pessoa.
+ * Se o lead já existe e veio de outra conversa, só preenchemos o que ainda está vazio:
+ * nada do que já foi coletado é sobrescrito e a conversa de origem não muda.
+ * Lead novo (ou da mesma conversa) segue normal.
+ */
+async function protectForeignLead(
+  repo: Repository,
+  sessionUuid: string,
+  lead: LeadInput,
+): Promise<LeadInput> {
+  const existing = await repo.findLead(lead.email);
+  if (!existing || !existing.session_id) return { ...lead, session_id: sessionUuid };
+  if (existing.session_id === sessionUuid) return lead;
+
+  const safe: LeadInput = { email: lead.email };
+  for (const key of ["name", "company", "need", "interest_confirmed"] as const) {
+    const current = existing[key];
+    if ((current === null || current === "") && lead[key] !== undefined) {
+      (safe as Record<string, unknown>)[key] = lead[key];
+    }
+  }
+  return safe;
+}
+
 async function registrarLead({ repo, sessionUuid }: ToolContext, args: ToolArgs) {
   const email = text(args.email).toLowerCase();
   if (!EMAIL_PATTERN.test(email)) {
@@ -96,7 +121,7 @@ async function registrarLead({ repo, sessionUuid }: ToolContext, args: ToolArgs)
   }
 
   // Envia só os campos preenchidos, para não apagar dados já coletados.
-  const lead: LeadInput = { email, session_id: sessionUuid };
+  const lead: LeadInput = { email };
   if (text(args.name)) lead.name = text(args.name);
   if (text(args.company)) lead.company = text(args.company);
   if (text(args.need)) lead.need = text(args.need);
@@ -104,16 +129,18 @@ async function registrarLead({ repo, sessionUuid }: ToolContext, args: ToolArgs)
     lead.interest_confirmed = args.interest_confirmed;
   }
 
-  const saved = await repo.upsertLead(lead);
+  const saved = await repo.upsertLead(await protectForeignLead(repo, sessionUuid, lead));
   return { ok: true, ...(await syncWithPipefy(repo, saved)) };
 }
 
-async function oferecerHorarios(_ctx: ToolContext, args: ToolArgs) {
+async function oferecerHorarios({ repo, sessionUuid }: ToolContext, args: ToolArgs) {
   const slots = await getAvailableSlots(text(args.timezone) || DEFAULT_TZ);
   if (!slots.length) {
     return { ok: false, erro: "Nenhum horário disponível nos próximos 7 dias" };
   }
 
+  // Guardados para validar o agendamento depois (e reaparecem no prompt dos próximos turnos).
+  await repo.setOfferedSlots(sessionUuid, slots);
   return { ok: true, horarios: slots };
 }
 
@@ -123,14 +150,36 @@ async function agendarReuniao({ repo, sessionUuid }: ToolContext, args: ToolArgs
     return { ok: false, erro: "E-mail inválido" };
   }
 
+  // Só agenda um dos horários que foram mostrados ao cliente nesta conversa.
+  const offered = await repo.getOfferedSlots(sessionUuid);
+  if (!offered.length) {
+    return { ok: false, erro: "Nenhum horário foi oferecido ainda. Chame oferecerHorarios antes." };
+  }
+  const requested = new Date(text(args.datetime)).getTime();
+  const chosen = offered.find((slot) => new Date(slot.start).getTime() === requested);
+  if (!chosen) {
+    return {
+      ok: false,
+      erro: "Esse horário não está entre os oferecidos. Use exatamente um destes valores de start.",
+      horarios: offered,
+    };
+  }
+
+  // Não troca a reunião de um lead que pertence a outra conversa.
+  const existing = await repo.findLead(email);
+  if (existing?.session_id && existing.session_id !== sessionUuid && existing.meeting_link) {
+    return { ok: false, erro: "Este e-mail já tem uma reunião agendada em outra conversa." };
+  }
+
   const name = text(args.name);
-  const booking = await bookMeeting({ name, email, start: text(args.datetime) });
+  const booking = await bookMeeting({ name, email, start: chosen.start });
 
   const lead = await repo.upsertLead({
-    email,
-    ...(name ? { name } : {}),
-    session_id: sessionUuid,
-    interest_confirmed: true,
+    ...(await protectForeignLead(repo, sessionUuid, {
+      email,
+      ...(name ? { name } : {}),
+      interest_confirmed: true,
+    })),
     meeting_link: booking.meetingLink,
     meeting_datetime: booking.start,
   });

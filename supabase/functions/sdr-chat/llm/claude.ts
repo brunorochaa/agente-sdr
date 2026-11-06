@@ -2,7 +2,8 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type { HistoryMessage, LlmConversation, LlmProvider, ToolCall, ToolSpec } from "./types.ts";
 
-const MAX_TOKENS = 16000;
+// Respostas de chat são curtas; 4096 sobra e evita gasto se o modelo se estender.
+const MAX_TOKENS = 4096;
 const REFUSAL_MESSAGE =
   "Desculpe, não posso ajudar com isso. Posso ajudar com algo sobre o ERP360?";
 
@@ -49,6 +50,8 @@ class ClaudeConversation implements LlmConversation {
       fallbacks: "default",
       model: this.model,
       max_tokens: MAX_TOKENS,
+      // Conversa com ferramentas simples: esforço médio basta e sai mais barato.
+      output_config: { effort: "medium" },
       system: this.system,
       tools: this.tools,
       messages: this.messages,

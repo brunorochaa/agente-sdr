@@ -73,3 +73,39 @@ Deno.test("responde ao preflight de CORS", async () => {
   const res = await handler(new Request("http://localhost", { method: "OPTIONS" }));
   assertEquals(res.headers.get("access-control-allow-origin"), "*");
 });
+
+Deno.test("falha da IA não grava a mensagem (sem duplicar ao tentar de novo)", async () => {
+  let fails = true;
+  const { repo, post } = setup(() =>
+    fails ? Promise.reject(new Error("fora do ar")) : Promise.resolve("Olá!")
+  );
+
+  await quiet(() => post({ sessionId: "session_abcdef", message: "Oi" }));
+  assertEquals(repo.messages.length, 0);
+
+  fails = false;
+  await post({ sessionId: "session_abcdef", message: "Oi" });
+  assertEquals(repo.messages.map((m) => m.role), ["user", "assistant"]);
+});
+
+Deno.test("limita mensagens por sessão", async () => {
+  const { repo, post } = setup();
+  const uuid = await repo.getOrCreateSession("session_abcdef");
+  for (let i = 0; i < 40; i++) await repo.saveMessage(uuid, "user", "spam");
+
+  const res = await post({ sessionId: "session_abcdef", message: "Oi" });
+  assertEquals(res.status, 429);
+
+  // Outra sessão não é afetada.
+  assertEquals((await post({ sessionId: "session_outra12", message: "Oi" })).status, 200);
+});
+
+Deno.test("limita mensagens no total por minuto", async () => {
+  const { repo, post } = setup();
+  for (let i = 0; i < 60; i++) {
+    const uuid = await repo.getOrCreateSession(`session_load_${i}`);
+    await repo.saveMessage(uuid, "user", "carga");
+  }
+
+  assertEquals((await post({ sessionId: "session_novo1234", message: "Oi" })).status, 429);
+});

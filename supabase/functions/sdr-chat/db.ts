@@ -1,4 +1,5 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import type { Slot } from "../_shared/calcom.ts";
 import { HISTORY_LIMIT } from "./config.ts";
 import type { ChatRole, HistoryMessage } from "./llm/types.ts";
 
@@ -16,9 +17,11 @@ export interface LeadRow {
   meeting_link: string | null;
   meeting_datetime: string | null;
   pipefy_card_id: string | null;
+  /** Sessão de chat que criou o lead. */
+  session_id: string | null;
 }
 
-export type LeadInput = Partial<Omit<LeadRow, "id">> & { email: string; session_id: string };
+export type LeadInput = Partial<Omit<LeadRow, "id">> & { email: string };
 
 /** Tudo o que o chat precisa do banco. Nos testes, é trocado por uma versão em memória. */
 export interface Repository {
@@ -26,8 +29,14 @@ export interface Repository {
   getOrCreateSession(sessionId: string): Promise<string>;
   loadHistory(sessionUuid: string): Promise<ChatMessage[]>;
   saveMessage(sessionUuid: string, role: ChatRole, content: string): Promise<void>;
+  /** Quantas mensagens de usuário chegaram desde `since` (numa sessão ou no total). */
+  countUserMessagesSince(since: Date, sessionUuid?: string): Promise<number>;
+  findLead(email: string): Promise<LeadRow | null>;
   upsertLead(lead: LeadInput): Promise<LeadRow>;
   setPipefyCardId(leadId: string, cardId: string): Promise<void>;
+  /** Últimos horários mostrados ao cliente (usados para validar o agendamento). */
+  getOfferedSlots(sessionUuid: string): Promise<Slot[]>;
+  setOfferedSlots(sessionUuid: string, slots: Slot[]): Promise<void>;
 }
 
 /** Repositório real (Supabase com service role: ignora o RLS, só existe no servidor). */
@@ -83,6 +92,30 @@ export function createSupabaseRepository(
       if (error) throw error;
     },
 
+    async countUserMessagesSince(since, sessionUuid) {
+      let query = db
+        .from("chat_messages")
+        .select("id", { count: "exact", head: true })
+        .eq("role", "user")
+        .gte("created_at", since.toISOString());
+      if (sessionUuid) query = query.eq("session_id", sessionUuid);
+
+      const { count, error } = await query;
+      if (error) throw error;
+      return count ?? 0;
+    },
+
+    async findLead(email) {
+      const { data, error } = await db
+        .from("leads")
+        .select("*")
+        .eq("email", email)
+        .maybeSingle();
+
+      if (error) throw error;
+      return (data as LeadRow | null) ?? null;
+    },
+
     async upsertLead(lead) {
       const { data, error } = await db
         .from("leads")
@@ -99,6 +132,26 @@ export function createSupabaseRepository(
         .from("leads")
         .update({ pipefy_card_id: cardId })
         .eq("id", leadId);
+
+      if (error) throw error;
+    },
+
+    async getOfferedSlots(sessionUuid) {
+      const { data, error } = await db
+        .from("chat_sessions")
+        .select("offered_slots")
+        .eq("id", sessionUuid)
+        .maybeSingle();
+
+      if (error) throw error;
+      return (data?.offered_slots as Slot[] | undefined) ?? [];
+    },
+
+    async setOfferedSlots(sessionUuid, slots) {
+      const { error } = await db
+        .from("chat_sessions")
+        .update({ offered_slots: slots })
+        .eq("id", sessionUuid);
 
       if (error) throw error;
     },

@@ -1,4 +1,5 @@
 // Utilitários de teste: banco em memória e um fetch falso que simula as APIs externas.
+import type { Slot } from "../_shared/calcom.ts";
 import type { ChatMessage, LeadInput, LeadRow, Repository } from "../sdr-chat/db.ts";
 
 // ---------------------------------------------------------------------------
@@ -9,6 +10,7 @@ export class MemoryRepository implements Repository {
   sessions = new Map<string, string>();
   messages: (ChatMessage & { session_uuid: string })[] = [];
   leads = new Map<string, LeadRow>();
+  offeredSlots = new Map<string, Slot[]>();
 
   findSession(sessionId: string) {
     return Promise.resolve(this.sessions.get(sessionId) ?? null);
@@ -39,9 +41,31 @@ export class MemoryRepository implements Repository {
     return Promise.resolve();
   }
 
+  countUserMessagesSince(since: Date, sessionUuid?: string) {
+    const count =
+      this.messages.filter((m) =>
+        m.role === "user" && new Date(m.created_at) >= since &&
+        (!sessionUuid || m.session_uuid === sessionUuid)
+      ).length;
+    return Promise.resolve(count);
+  }
+
+  findLead(email: string) {
+    const lead = this.leads.get(email);
+    return Promise.resolve(lead ? { ...lead } : null);
+  }
+
+  getOfferedSlots(sessionUuid: string) {
+    return Promise.resolve(this.offeredSlots.get(sessionUuid) ?? []);
+  }
+
+  setOfferedSlots(sessionUuid: string, slots: Slot[]) {
+    this.offeredSlots.set(sessionUuid, slots);
+    return Promise.resolve();
+  }
+
   upsertLead(lead: LeadInput) {
     const current = this.leads.get(lead.email);
-    const { session_id: _session, ...fields } = lead;
     const row: LeadRow = {
       id: current?.id ?? crypto.randomUUID(),
       name: null,
@@ -51,8 +75,9 @@ export class MemoryRepository implements Repository {
       meeting_link: null,
       meeting_datetime: null,
       pipefy_card_id: null,
+      session_id: null,
       ...current,
-      ...fields,
+      ...lead,
     };
     this.leads.set(lead.email, row);
     return Promise.resolve({ ...row });

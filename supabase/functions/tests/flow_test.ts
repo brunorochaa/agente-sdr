@@ -122,7 +122,7 @@ function checkProviderFormat(name: string, fake: FakeFetch) {
   if (name === "claude") {
     assertEquals(first.headers.get("authorization"), "Bearer test-claude");
     assertStringIncludes(first.headers.get("anthropic-beta")!, "server-side-fallback-2026-07-01");
-    assertEquals(first.body.model, "claude-opus-5-5");
+    assertEquals(first.body.model, "claude-sonnet-5-5");
     assertEquals(first.body.fallbacks, "default");
     assertStringIncludes(first.body.system, "ERP360");
     assertEquals(first.body.tools[0].input_schema.type, "object");

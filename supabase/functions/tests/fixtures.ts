@@ -37,7 +37,7 @@ export function claudeReply(turn: ScriptedTurn) {
     id: `msg_${++counter}`,
     type: "message",
     role: "assistant",
-    model: "claude-opus-5-5",
+    model: "claude-sonnet-5-5",
     content,
     stop_reason: turn.call ? "tool_use" : "end_turn",
     stop_sequence: null,

@@ -1,6 +1,11 @@
 import { corsHeaders, json } from "../_shared/http.ts";
 import { runAgent } from "./agent.ts";
-import { MAX_MESSAGE_LENGTH, SESSION_ID_PATTERN } from "./config.ts";
+import {
+  MAX_MESSAGE_LENGTH,
+  MAX_MESSAGES_GLOBAL_MINUTE,
+  MAX_MESSAGES_PER_SESSION_HOUR,
+  SESSION_ID_PATTERN,
+} from "./config.ts";
 import type { Repository } from "./db.ts";
 import type { LlmProvider } from "./llm/types.ts";
 import { WELCOME_MESSAGE } from "./prompt.ts";
@@ -48,11 +53,35 @@ export function createHandler(deps: HandlerDeps) {
       }
 
       const sessionUuid = await repo.getOrCreateSession(sessionId);
-      await repo.saveMessage(sessionUuid, "user", message);
 
-      const history = await repo.loadHistory(sessionUuid);
+      // Limites de uso: a função é pública e cada mensagem gasta créditos de IA.
+      const now = Date.now();
+      const [lastHour, lastMinute] = await Promise.all([
+        repo.countUserMessagesSince(new Date(now - 3_600_000), sessionUuid),
+        repo.countUserMessagesSince(new Date(now - 60_000)),
+      ]);
+      if (lastHour >= MAX_MESSAGES_PER_SESSION_HOUR) {
+        return json(
+          { error: "Você enviou muitas mensagens. Tente de novo em alguns minutos." },
+          429,
+        );
+      }
+      if (lastMinute >= MAX_MESSAGES_GLOBAL_MINUTE) {
+        return json(
+          { error: "Estamos com muitos atendimentos agora. Tente de novo em instantes." },
+          429,
+        );
+      }
+
+      // A mensagem só é gravada depois que a IA responde. Se a IA falhar, o cliente
+      // tenta de novo sem deixar duas mensagens iguais seguidas no histórico.
+      const history = [
+        ...(await repo.loadHistory(sessionUuid)),
+        { role: "user" as const, content: message },
+      ];
       const response = await runAgent(deps.provider(), { repo, sessionUuid }, history);
 
+      await repo.saveMessage(sessionUuid, "user", message);
       await repo.saveMessage(sessionUuid, "assistant", response);
       return json({ response });
     } catch (error) {

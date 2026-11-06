@@ -19,7 +19,7 @@ Deno.test("escolhe o provedor e o modelo pelas variáveis", () => {
   );
   assertEquals(
     providerFromEnv(env({ LLM_PROVIDER: "Claude", ANTHROPIC_API_KEY: "k" })).model,
-    "claude-opus-5-5",
+    "claude-sonnet-5-5",
   );
   assertEquals(
     providerFromEnv(

@@ -16,8 +16,12 @@ export async function runAgent(
   ctx: ToolContext,
   history: HistoryMessage[],
 ): Promise<string> {
+  // Os horários já oferecidos vão no prompt: o histórico só guarda o texto das respostas,
+  // então sem isso o modelo perderia o valor exato (ISO) de cada horário.
+  const offeredSlots = await ctx.repo.getOfferedSlots(ctx.sessionUuid);
+
   const conversation = provider.startConversation({
-    system: buildSystemPrompt(),
+    system: buildSystemPrompt(new Date(), offeredSlots),
     history,
     tools: toolSpecs,
   });

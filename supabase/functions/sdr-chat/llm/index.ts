@@ -30,7 +30,7 @@ const PROVIDERS: Record<
   claude: {
     keyEnv: "ANTHROPIC_API_KEY",
     modelEnv: "CLAUDE_MODEL",
-    defaultModel: "claude-opus-5-5",
+    defaultModel: "claude-sonnet-5-5",
     create: createClaudeProvider,
   },
 };

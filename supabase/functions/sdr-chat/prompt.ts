@@ -1,18 +1,24 @@
-import { DEFAULT_TZ } from "../_shared/calcom.ts";
+import { DEFAULT_TZ, type Slot } from "../_shared/calcom.ts";
 
 export const WELCOME_MESSAGE =
   "Olá! Sou o assistente virtual da ERP360. Como posso ajudar você hoje com a gestão da sua empresa?";
 
-export function buildSystemPrompt(now = new Date()): string {
+export function buildSystemPrompt(now = new Date(), offeredSlots: Slot[] = []): string {
   const today = now.toLocaleString("pt-BR", {
     timeZone: DEFAULT_TZ,
     dateStyle: "full",
     timeStyle: "short",
   });
 
+  const slotsBlock = offeredSlots.length
+    ? `\nHORÁRIOS JÁ OFERECIDOS A ESTE CLIENTE (use o valor "start" exato ao agendar):\n${
+      offeredSlots.map((slot) => `- ${slot.label} -> start: ${slot.start}`).join("\n")
+    }\n`
+    : "";
+
   return `Você é um agente SDR (Sales Development Representative) da ERP360, um software de gestão empresarial completo.
 Data e hora atual (Brasília): ${today}.
-
+${slotsBlock}
 SEU OBJETIVO: conduzir uma conversa natural para:
 1. Apresentar o produto ERP360
 2. Descobrir as necessidades do cliente (nome, e-mail, empresa, necessidades de gestão, prazo)

@@ -1,4 +1,5 @@
 import { assertEquals, assertStringIncludes } from "@std/assert";
+import { getAvailableSlots } from "../_shared/calcom.ts";
 import { runTool } from "../sdr-chat/tools.ts";
 import { FakeFetch, MemoryRepository, quiet, setEnv } from "./helpers.ts";
 
@@ -80,18 +81,97 @@ Deno.test("Pipefy fora do ar não impede salvar o lead", async () => {
   }
 });
 
-Deno.test("agendarReuniao com horário inválido devolve erro ao modelo", async () => {
+Deno.test("agendarReuniao exige que os horários tenham sido oferecidos", async () => {
   setEnv({});
+  const ctx = context();
+  const [slot] = await getAvailableSlots();
   const result = await quiet(() =>
-    runTool(context(), "agendarReuniao", {
+    runTool(ctx, "agendarReuniao", { name: "Ana", email: "ana@acme.com", datetime: slot.start })
+  );
+
+  assertEquals(result.ok, false);
+  assertStringIncludes(String(result.erro), "oferecerHorarios");
+});
+
+Deno.test("agendarReuniao recusa horário que não foi oferecido e devolve os válidos", async () => {
+  setEnv({});
+  const ctx = context();
+  await runTool(ctx, "oferecerHorarios", {});
+
+  for (const datetime of ["amanhã cedo", "2030-01-01T10:00:00.000Z"]) {
+    const result = await quiet(() =>
+      runTool(ctx, "agendarReuniao", { name: "Ana", email: "ana@acme.com", datetime })
+    );
+    assertEquals(result.ok, false);
+    assertEquals((result.horarios as unknown[]).length, 6);
+  }
+  assertEquals(ctx.repo.leads.size, 0);
+});
+
+Deno.test("agendarReuniao agenda um horário oferecido", async () => {
+  setEnv({});
+  const ctx = context();
+  const offered = (await runTool(ctx, "oferecerHorarios", {})).horarios as { start: string }[];
+  const result = await quiet(() =>
+    runTool(ctx, "agendarReuniao", {
       name: "Ana",
       email: "ana@acme.com",
-      datetime: "amanhã cedo",
+      datetime: offered[1].start,
+    })
+  );
+
+  assertEquals(result.ok, true);
+  assertEquals(ctx.repo.leads.get("ana@acme.com")!.meeting_datetime, offered[1].start);
+});
+
+Deno.test("outra conversa não sobrescreve um lead existente", async () => {
+  setEnv({});
+  const repo = new MemoryRepository();
+  const dona = { repo, sessionUuid: "sessao-da-ana" };
+  const intrusa = { repo, sessionUuid: "sessao-intrusa" };
+
+  await runTool(dona, "registrarLead", { name: "Ana", email: "ana@acme.com", company: "Acme" });
+  await runTool(intrusa, "registrarLead", {
+    name: "Fulano",
+    email: "ana@acme.com",
+    company: "Outra",
+    need: "Financeiro",
+  });
+
+  const lead = repo.leads.get("ana@acme.com")!;
+  assertEquals(lead.name, "Ana");
+  assertEquals(lead.company, "Acme");
+  assertEquals(lead.session_id, "sessao-da-ana");
+  assertEquals(lead.need, "Financeiro", "campo vazio pode ser preenchido");
+});
+
+Deno.test("outra conversa não troca uma reunião já agendada", async () => {
+  setEnv({});
+  const repo = new MemoryRepository();
+  const dona = { repo, sessionUuid: "sessao-da-ana" };
+  const intrusa = { repo, sessionUuid: "sessao-intrusa" };
+
+  const donaSlots = (await runTool(dona, "oferecerHorarios", {})).horarios as { start: string }[];
+  await quiet(() =>
+    runTool(dona, "agendarReuniao", {
+      name: "Ana",
+      email: "ana@acme.com",
+      datetime: donaSlots[0].start,
+    })
+  );
+  const link = repo.leads.get("ana@acme.com")!.meeting_link;
+
+  const slots = (await runTool(intrusa, "oferecerHorarios", {})).horarios as { start: string }[];
+  const result = await quiet(() =>
+    runTool(intrusa, "agendarReuniao", {
+      name: "Fulano",
+      email: "ana@acme.com",
+      datetime: slots[3].start,
     })
   );
 
   assertEquals(result.ok, false);
-  assertStringIncludes(String(result.erro), "Horário inválido");
+  assertEquals(repo.leads.get("ana@acme.com")!.meeting_link, link);
 });
 
 Deno.test("ferramenta desconhecida não quebra o agente", async () => {
