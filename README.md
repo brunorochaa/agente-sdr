@@ -1,156 +1,94 @@
-# 💼 Agente SDR Automatizado - ERP360
+# Elite Agente SDR
 
-Sistema de pré-vendas automatizado que:
-- ✅ Conduz conversas naturais para qualificar leads  
-- ✅ Coleta informações como nome, email, empresa e necessidade  
-- ✅ Identifica interesse e agenda reuniões automaticamente  
-- ✅ Integra com Pipefy para gestão de leads  
-- ✅ Integra com Cal.com para agendamento  
+Agente de pré-vendas (SDR) com IA para o ERP360, um ERP fictício. Um webchat conversa com o visitante, qualifica o interesse, registra o lead no Pipefy e agenda a reunião no Cal.com. Começou como desafio técnico de um processo seletivo (2025), feito no Lovable, e foi reorganizado em 2026.
 
----
+## O que faz
 
-## 🎯 Funcionalidades
+- Página do ERP360 com módulos, etapas e planos, e um chat no canto da tela.
+- O agente se apresenta, pergunta sobre a empresa, as dores e o prazo, e pergunta diretamente se o visitante quer falar com o time.
+- Assim que sabe nome e e-mail, registra o lead no banco e cria um card no Pipefy (e atualiza o card a cada dado novo).
+- Com interesse confirmado, oferece horários livres e agenda a reunião no Cal.com, devolvendo o link.
+- Guarda a conversa: quem volta ao site continua de onde parou.
+- Funciona com **Gemini, OpenAI (ChatGPT) ou Claude**, escolhidos por uma variável de ambiente.
 
-### Chat Inteligente
-- Interface responsiva e acessível  
-- Conversas persistentes (localStorage + banco de dados)  
-- Sessões identificadas por ID anônimo  
-- Visual moderno, inspirado em ferramentas como Intercom e Drift  
+Sem chaves do Pipefy e do Cal.com, o lead fica só no banco e o agendamento roda em modo demonstração.
 
-### Assistente de Vendas
-- Baseado em Supabase  
-- Executa ações automáticas:
-  - `registrarLead`: grava no banco e Pipefy  
-  - `oferecerHorarios`: busca horários disponíveis  
-  - `agendarReuniao`: agenda via Cal.com  
+## Tecnologias
 
-### Integrações
-- **Pipefy**: armazena e organiza os leads no funil  
-- **Cal.com**: agenda reuniões em tempo real  
-- **Supabase**: backend completo com banco e funções  
+- React 18, TypeScript, Vite e Tailwind CSS
+- Supabase: Postgres e Edge Functions (Deno)
+- Gemini, OpenAI ou Claude (function calling / tool use)
+- Pipefy (GraphQL) e Cal.com (API v2)
 
----
+## Como rodar
 
-## 🚀 Como Testar
+Frontend:
 
-1. **Abra o chat** (ícone no canto inferior direito)  
-2. **Converse com o assistente**:
-   - Ele se apresenta  
-   - Faz perguntas sobre sua empresa e necessidade  
-   - Verifica interesse na solução  
-3. **Agende uma reunião**:
-   - Se houver interesse, ele mostra horários  
-   - Você escolhe um  
-   - O link da reunião é enviado automaticamente  
+```bash
+cp .env.example .env      # dados do seu projeto Supabase
+npm install
+npm run dev               # http://localhost:8080
+```
 
----
+Banco e Edge Functions (requer o [Supabase CLI](https://supabase.com/docs/guides/cli)):
 
-## ⚙️ Configuração das Integrações
+```bash
+supabase link --project-ref <seu-project-ref>
+supabase db push                              # aplica as migrations
+cp supabase/.env.example supabase/.env        # preencha as chaves
+supabase secrets set --env-file supabase/.env
+supabase functions deploy sdr-chat
+```
 
-### Pipefy
-1. Crie um token em: [https://app.pipefy.com/tokens](https://app.pipefy.com/tokens)  
-2. O token deve estar em `PIPEFY_API_TOKEN`  
-3. Edite `supabase/functions/pipefy-integration/index.ts`:
-   - Linha 22: substitua `PIPE_ID` pelo ID do funil  
-   - Ajuste os `field_id` conforme os campos do seu pipe  
+Para rodar as funções localmente: `supabase start` e `supabase functions serve --env-file supabase/.env`.
 
-### Cal.com
-1. Crie uma chave de API em: [https://cal.com/settings/developer/api-keys](https://cal.com/settings/developer/api-keys)  
-2. Configure em `CAL_COM_API_KEY`  
-3. Edite `supabase/functions/calcom-integration/index.ts`:
-   - Linha 43: substitua `EVENT_TYPE_ID` pelo tipo de evento  
-   - Ative as linhas 46–53 para usar a API real  
+## Testes e qualidade
 
----
+```bash
+npm test          # testes das Edge Functions (Deno)
+npm run check     # typecheck + lint + build do frontend
+npm run format    # Prettier no frontend e deno fmt nas funções
+```
 
-## 📊 Banco de Dados
+Os testes usam banco em memória e APIs simuladas, então rodam sem chaves e sem internet. Cobrem o fluxo completo (lead, horários e agendamento) nos três provedores de IA, o formato de cada API, Pipefy, Cal.com e as validações da rota.
 
-**Tabelas principais:**
-- `chat_sessions`: sessões dos usuários  
-- `chat_messages`: histórico de mensagens  
-- `leads`: informações e status dos contatos  
+## Configuração
 
-**Segurança:**  
-Todas as tabelas têm políticas públicas (read/write) para permitir uso sem autenticação.
+Variáveis das Edge Functions (modelo em `supabase/.env.example`):
 
----
+| Variável                                       | Obrigatória | Observação                                                   |
+| ---------------------------------------------- | ----------- | ------------------------------------------------------------ |
+| `LLM_PROVIDER`                                 | não         | `gemini` (padrão), `openai` ou `claude`                      |
+| chave do provedor escolhido                    | sim         | `GEMINI_API_KEY`, `OPENAI_API_KEY` ou `ANTHROPIC_API_KEY`    |
+| `GEMINI_MODEL`, `OPENAI_MODEL`, `CLAUDE_MODEL` | não         | padrões: `gemini-2.5-flash`, `gpt-5-mini`, `claude-opus-5-5` |
+| `PIPEFY_API_TOKEN`, `PIPEFY_PIPE_ID`           | não         | sem elas, o lead fica só no banco                            |
+| `CAL_COM_API_KEY`, `CAL_COM_EVENT_TYPE_ID`     | não         | sem elas, horários e link são simulados                      |
 
-## 🎨 Design
+No Claude, o _fallback_ do servidor fica ligado: se o modelo recusar um pedido por engano, a API repete a resposta em um modelo substituto.
 
-- **Cor primária:** azul profissional (#2563eb)  
-- **Cor de destaque:** verde sucesso (#10b981)  
-- **Fonte:** sans-serif moderna  
-- **Transições:** suaves, com animações leves  
-- **Sombras:** sutis, para dar profundidade  
+Os IDs dos campos do formulário do Pipefy ficam em `supabase/functions/_shared/pipefy.ts` (`FIELD_IDS`). Crie campos com esses IDs no pipe ou ajuste a constante.
 
----
+## Estrutura
 
-## 🔧 Tecnologias
+```text
+src/
+├── pages/Index.tsx            # página do ERP360
+├── components/ChatWidget.tsx  # webchat
+└── lib/                       # utilitários e evento para abrir o chat
+supabase/
+├── migrations/                # tabelas chat_sessions, chat_messages e leads
+└── functions/
+    ├── sdr-chat/              # rota do chat, ciclo do agente, ferramentas e prompt
+    │   └── llm/               # provedores de IA (Gemini, OpenAI, Claude)
+    ├── _shared/               # integrações Pipefy e Cal.com
+    ├── pipefy-integration/    # endpoint interno para testar o Pipefy
+    ├── calcom-integration/    # endpoint interno para testar o Cal.com
+    └── tests/                 # testes automatizados
+```
 
-### Frontend
-- React + TypeScript  
-- Tailwind CSS  
-- Shadcn UI  
-- React Query  
+O navegador só conversa com a função `sdr-chat`. As tabelas têm RLS sem políticas públicas: apenas as Edge Functions (service role) leem e gravam.
 
-### Backend
-- Supabase (PostgreSQL)  
-- Edge Functions (Deno)  
+API da função `sdr-chat`:
 
-### Integrações
-- Pipefy GraphQL API  
-- Cal.com REST API  
-
----
-
-## 💬 Fluxo do Assistente
-
-1. **Apresentação:** cumprimenta e oferece ajuda  
-2. **Descoberta:** entende o cenário da empresa  
-3. **Qualificação:** identifica dores e urgência  
-4. **Confirmação:** valida o interesse  
-5. **Agendamento:** oferece horários e agenda  
-
-**Tom de voz:**
-- Natural e profissional  
-- Empático e direto  
-- Sempre uma pergunta por vez  
-
----
-
-## 🔐 Segurança
-
-- Segredos gerenciados via Supabase  
-- Nenhuma chave exposta no frontend  
-- RLS policies ativas  
-- Validação de entradas em todas as rotas  
-
----
-
-## 📈 Próximos Passos
-
-1. ✅ Configurar IDs reais do Pipefy e Cal.com  
-2. ✅ Testar o fluxo completo  
-3. ✅ Ajustar mensagens conforme feedback  
-4. ⬜ Adicionar métricas de conversão  
-5. ⬜ Enviar notificações por e-mail  
-6. ⬜ Criar dashboard para leads  
-
----
-
-## 🤝 Suporte
-
-Se precisar ajustar algo:  
-1. Acesse o backend: <lov-actions><lov-open-backend>Ver Backend</lov-open-backend></lov-actions>  
-2. Confira os logs das funções  
-3. Verifique as tabelas de dados  
-
----
-
-## 📚 Referências
-
-- [Supabase](https://supabase.com/docs)  
-- [Pipefy API](https://developers.pipefy.com/)  
-- [Cal.com API](https://cal.com/docs/api-reference)  
-
----
+- `POST { "sessionId": "...", "message": "..." }` → `{ "response": "..." }`
+- `POST { "sessionId": "...", "action": "history" }` → `{ "messages": [...] }`

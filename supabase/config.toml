@@ -1,10 +1,12 @@
-project_id = "rmqcomyfzfrrdbmvelwq"
+project_id = "vtxokpagayzscodhgzib"
 
+# Chamada pelo widget público (sem login).
 [functions.sdr-chat]
 verify_jwt = false
 
+# Endpoints internos, só para testar as integrações isoladamente.
 [functions.pipefy-integration]
-verify_jwt = false
+verify_jwt = true
 
 [functions.calcom-integration]
-verify_jwt = false
+verify_jwt = true

@@ -1,242 +1,317 @@
-import { useState, useEffect, useRef } from "react";
-import { MessageCircle, X, Send, Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { useToast } from "@/hooks/use-toast";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { ArrowUp, MessageSquare, RotateCw, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { onOpenChat } from "@/lib/chat-events";
+import { cn } from "@/lib/utils";
+
+const SESSION_KEY = "sdr_session_id";
+const MAX_LENGTH = 1000;
+
+const WELCOME_FALLBACK =
+  "Olá! Sou o assistente virtual da ERP360. Como posso ajudar você hoje com a gestão da sua empresa?";
+
+const SUGGESTIONS = [
+  "Quero conhecer os planos",
+  "Meu estoque vive desatualizado",
+  "Quero agendar uma demonstração",
+];
 
 interface Message {
-  role: 'user' | 'assistant';
+  role: "user" | "assistant";
   content: string;
   timestamp: Date;
+  failed?: boolean;
+}
+
+function getSessionId(): string {
+  let id = localStorage.getItem(SESSION_KEY);
+  if (!id) {
+    id = `session_${crypto.randomUUID()}`;
+    localStorage.setItem(SESSION_KEY, id);
+  }
+  return id;
+}
+
+function formatTime(date: Date) {
+  return date.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+}
+
+/** Mostra o texto com links clicáveis (ex.: link da reunião). */
+function MessageText({ text }: { text: string }) {
+  const parts = text.split(/(https?:\/\/[^\s)]+)/g);
+  return (
+    <>
+      {parts.map((part, index) =>
+        /^https?:\/\//.test(part) ? (
+          <a
+            key={index}
+            href={part}
+            target="_blank"
+            rel="noreferrer"
+            className="break-all font-medium underline underline-offset-2"
+          >
+            {part}
+          </a>
+        ) : (
+          <span key={index}>{part}</span>
+        ),
+      )}
+    </>
+  );
+}
+
+function TypingIndicator() {
+  return (
+    <div className="flex items-center gap-1 px-1 py-2" aria-label="Digitando">
+      {[0, 150, 300].map((delay) => (
+        <span
+          key={delay}
+          className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground/60"
+          style={{ animationDelay: `${delay}ms` }}
+        />
+      ))}
+    </div>
+  );
 }
 
 export const ChatWidget = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
-  const [input, setInput] = useState('');
+  const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [sessionId, setSessionId] = useState<string>('');
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const { toast } = useToast();
+  const [sessionId] = useState(getSessionId);
+  const bottomRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
 
+  // Carrega o histórico da sessão (vem da Edge Function, não das tabelas).
   useEffect(() => {
-    // Gerar ou recuperar session ID do localStorage
-    let storedSessionId = localStorage.getItem('sdr_session_id');
-    if (!storedSessionId) {
-      storedSessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      localStorage.setItem('sdr_session_id', storedSessionId);
-    }
-    setSessionId(storedSessionId);
-    loadChatHistory(storedSessionId);
-  }, []);
-
-  useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
-  }, [messages]);
-
-  const loadChatHistory = async (sid: string) => {
-    try {
-      // Buscar ou criar sessão
-      const { data: session, error: sessionError } = await supabase
-        .from('chat_sessions')
-        .select('id')
-        .eq('session_id', sid)
-        .maybeSingle();
-
-      if (sessionError) throw sessionError;
-
-      if (session) {
-        // Carregar mensagens anteriores
-        const { data: msgs, error: msgsError } = await supabase
-          .from('chat_messages')
-          .select('*')
-          .eq('session_id', session.id)
-          .order('created_at', { ascending: true });
-
-        if (msgsError) throw msgsError;
-
-        if (msgs && msgs.length > 0) {
-          setMessages(msgs.map(m => ({
-            role: m.role as 'user' | 'assistant',
+    supabase.functions
+      .invoke("sdr-chat", { body: { action: "history", sessionId } })
+      .then(({ data, error }) => {
+        if (error) throw error;
+        const history: { role: Message["role"]; content: string; created_at?: string }[] =
+          data?.messages ?? [];
+        setMessages(
+          history.map((m) => ({
+            role: m.role,
             content: m.content,
-            timestamp: new Date(m.created_at)
-          })));
-        } else {
-          // Mensagem de boas-vindas
-          setMessages([{
-            role: 'assistant',
-            content: 'Olá! Sou o assistente virtual da ERP360. Como posso ajudá-lo hoje com soluções de gestão empresarial?',
-            timestamp: new Date()
-          }]);
-        }
-      }
-    } catch (error) {
-      console.error('Erro ao carregar histórico:', error);
-    }
-  };
-
-  const sendMessage = async () => {
-    if (!input.trim() || isLoading) return;
-
-    const userMessage: Message = {
-      role: 'user',
-      content: input.trim(),
-      timestamp: new Date()
-    };
-
-    setMessages(prev => [...prev, userMessage]);
-    setInput('');
-    setIsLoading(true);
-
-    try {
-      const { data, error } = await supabase.functions.invoke('sdr-chat', {
-        body: {
-          sessionId,
-          message: userMessage.content,
-          conversationHistory: messages
-        }
+            timestamp: m.created_at ? new Date(m.created_at) : new Date(),
+          })),
+        );
+      })
+      .catch((error) => {
+        console.error("Erro ao carregar histórico:", error);
+        setMessages([{ role: "assistant", content: WELCOME_FALLBACK, timestamp: new Date() }]);
       });
+  }, [sessionId]);
 
-      if (error) throw error;
+  // Botões da página podem abrir o chat com um texto sugerido.
+  useEffect(
+    () =>
+      onOpenChat((draft) => {
+        setIsOpen(true);
+        if (draft) setInput(draft);
+        setTimeout(() => inputRef.current?.focus(), 50);
+      }),
+    [],
+  );
 
-      if (data?.response) {
-        setMessages(prev => [...prev, {
-          role: 'assistant',
-          content: data.response,
-          timestamp: new Date()
-        }]);
-      }
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, isLoading, isOpen]);
 
-      if (data?.error) {
-        toast({
-          title: "Erro",
-          description: data.error,
-          variant: "destructive"
+  // Ajusta a altura do campo conforme o texto.
+  useEffect(() => {
+    const el = inputRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${Math.min(el.scrollHeight, 120)}px`;
+  }, [input, isOpen]);
+
+  const send = useCallback(
+    async (text: string) => {
+      const content = text.trim();
+      if (!content || isLoading) return;
+
+      setMessages((prev) => [
+        ...prev.filter((m) => !m.failed),
+        { role: "user", content, timestamp: new Date() },
+      ]);
+      setInput("");
+      setIsLoading(true);
+
+      try {
+        const { data, error } = await supabase.functions.invoke("sdr-chat", {
+          body: { sessionId, message: content },
         });
+        if (error || !data?.response) throw error ?? new Error(data?.error);
+
+        setMessages((prev) => [
+          ...prev,
+          { role: "assistant", content: data.response, timestamp: new Date() },
+        ]);
+      } catch (error) {
+        console.error("Erro ao enviar mensagem:", error);
+        setMessages((prev) =>
+          prev.map((m, i) => (i === prev.length - 1 ? { ...m, failed: true } : m)),
+        );
+      } finally {
+        setIsLoading(false);
       }
-    } catch (error: any) {
-      console.error('Erro ao enviar mensagem:', error);
-      toast({
-        title: "Erro na comunicação",
-        description: "Não foi possível processar sua mensagem. Tente novamente.",
-        variant: "destructive"
-      });
-    } finally {
-      setIsLoading(false);
-    }
+    },
+    [isLoading, sessionId],
+  );
+
+  const retry = (message: Message) => {
+    setMessages((prev) => prev.filter((m) => m !== message));
+    send(message.content);
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      sendMessage();
-    }
-  };
+  const showSuggestions = !isLoading && messages.length <= 1;
 
   return (
     <>
-      {/* Botão flutuante */}
       {!isOpen && (
-        <Button
+        <button
+          type="button"
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-[var(--shadow-elevated)] bg-primary hover:bg-primary/90 transition-all hover:scale-110"
-          size="icon"
-          aria-label="Abrir chat"
+          className="fixed bottom-5 right-5 z-50 flex items-center gap-2 rounded-full bg-foreground py-3 pl-4 pr-5 text-sm font-medium text-background shadow-lg transition-transform hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          aria-label="Abrir chat com especialista"
         >
-          <MessageCircle className="h-6 w-6" />
-        </Button>
+          <MessageSquare className="h-4 w-4" />
+          Falar com especialista
+        </button>
       )}
 
-      {/* Widget do chat */}
       {isOpen && (
-        <div className="fixed bottom-6 right-6 w-[380px] h-[600px] bg-card rounded-2xl shadow-[var(--shadow-elevated)] flex flex-col overflow-hidden border border-border animate-in slide-in-from-bottom-4 duration-300">
-          {/* Header */}
-          <div className="bg-primary text-primary-foreground p-4 flex items-center justify-between">
+        <section
+          role="dialog"
+          aria-label="Chat com especialista ERP360"
+          className="fixed inset-0 z-50 flex flex-col overflow-hidden bg-chat-background duration-200 animate-in fade-in slide-in-from-bottom-2 sm:inset-auto sm:bottom-5 sm:right-5 sm:h-[620px] sm:max-h-[calc(100vh-2.5rem)] sm:w-[400px] sm:rounded-xl sm:border sm:shadow-2xl"
+        >
+          {/* Cabeçalho */}
+          <header className="flex items-center justify-between border-b bg-card px-4 py-3">
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-full bg-primary-foreground/20 flex items-center justify-center">
-                <MessageCircle className="h-5 w-5" />
+              <div className="relative flex h-9 w-9 items-center justify-center rounded-full bg-primary font-mono text-[11px] font-medium text-primary-foreground">
+                360
+                <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-card bg-emerald-500" />
               </div>
-              <div>
-                <h3 className="font-semibold">Assistente ERP360</h3>
-                <p className="text-xs opacity-90">Online - Resposta rápida</p>
+              <div className="leading-tight">
+                <p className="text-sm font-semibold">Assistente ERP360</p>
+                <p className="text-xs text-muted-foreground">Responde em segundos</p>
               </div>
             </div>
-            <Button
-              variant="ghost"
-              size="icon"
+            <button
+              type="button"
               onClick={() => setIsOpen(false)}
-              className="text-primary-foreground hover:bg-primary-foreground/20"
+              className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
               aria-label="Fechar chat"
             >
-              <X className="h-5 w-5" />
-            </Button>
-          </div>
+              <X className="h-4 w-4" />
+            </button>
+          </header>
 
           {/* Mensagens */}
-          <ScrollArea className="flex-1 p-4 bg-chat-background" ref={scrollRef}>
-            <div className="space-y-4">
-              {messages.map((msg, idx) => (
+          <div className="flex-1 space-y-4 overflow-y-auto px-4 py-5" aria-live="polite">
+            {messages.map((msg, idx) => {
+              const isUser = msg.role === "user";
+              return (
                 <div
                   key={idx}
-                  className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                  className={cn("flex flex-col gap-1", isUser ? "items-end" : "items-start")}
                 >
                   <div
-                    className={`max-w-[80%] rounded-2xl px-4 py-2 ${
-                      msg.role === 'user'
-                        ? 'bg-chat-bubble-user text-primary-foreground'
-                        : 'bg-chat-bubble-assistant text-foreground border border-border'
-                    }`}
+                    className={cn(
+                      "max-w-[85%] whitespace-pre-wrap px-3.5 py-2.5 text-sm leading-relaxed",
+                      isUser
+                        ? "rounded-2xl rounded-br-sm bg-chat-bubble-user text-background"
+                        : "rounded-2xl rounded-bl-sm border bg-chat-bubble-assistant",
+                      msg.failed && "opacity-60",
+                    )}
                   >
-                    <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                    <MessageText text={msg.content} />
                   </div>
+                  {msg.failed ? (
+                    <button
+                      type="button"
+                      onClick={() => retry(msg)}
+                      className="flex items-center gap-1 text-xs font-medium text-destructive hover:underline"
+                    >
+                      <RotateCw className="h-3 w-3" />
+                      Não enviada. Tentar de novo
+                    </button>
+                  ) : (
+                    <span className="px-1 font-mono text-[10px] text-muted-foreground">
+                      {formatTime(msg.timestamp)}
+                    </span>
+                  )}
                 </div>
-              ))}
-              {isLoading && (
-                <div className="flex justify-start">
-                  <div className="bg-chat-bubble-assistant border border-border rounded-2xl px-4 py-2">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  </div>
-                </div>
-              )}
-            </div>
-          </ScrollArea>
+              );
+            })}
 
-          {/* Input */}
-          <div className="p-4 border-t border-border bg-card">
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                sendMessage();
-              }}
-              className="flex gap-2"
-            >
-              <Input
+            {isLoading && (
+              <div className="w-fit rounded-2xl rounded-bl-sm border bg-card px-3">
+                <TypingIndicator />
+              </div>
+            )}
+
+            {showSuggestions && (
+              <div className="flex flex-wrap gap-2 pt-1">
+                {SUGGESTIONS.map((suggestion) => (
+                  <button
+                    key={suggestion}
+                    type="button"
+                    onClick={() => send(suggestion)}
+                    className="rounded-full border bg-card px-3 py-1.5 text-xs transition-colors hover:border-primary hover:text-primary"
+                  >
+                    {suggestion}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            <div ref={bottomRef} />
+          </div>
+
+          {/* Campo de mensagem */}
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              send(input);
+            }}
+            className="border-t bg-card p-3"
+          >
+            <div className="flex items-end gap-2 rounded-lg border bg-background px-3 py-2 focus-within:border-primary">
+              <textarea
+                ref={inputRef}
+                rows={1}
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                onKeyPress={handleKeyPress}
-                placeholder="Digite sua mensagem..."
-                disabled={isLoading}
-                className="flex-1"
-                maxLength={500}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    send(input);
+                  }
+                }}
+                placeholder="Escreva sua mensagem"
+                maxLength={MAX_LENGTH}
+                aria-label="Mensagem"
+                className="max-h-[120px] flex-1 resize-none bg-transparent py-1 text-sm outline-none placeholder:text-muted-foreground"
               />
-              <Button
+              <button
                 type="submit"
-                size="icon"
                 disabled={isLoading || !input.trim()}
-                className="bg-primary hover:bg-primary/90"
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground transition-opacity disabled:opacity-30"
+                aria-label="Enviar mensagem"
               >
-                <Send className="h-4 w-4" />
-              </Button>
-            </form>
-            <p className="text-xs text-muted-foreground mt-2 text-center">
-              Powered by ERP360 AI
+                <ArrowUp className="h-4 w-4" />
+              </button>
+            </div>
+            <p className="mt-2 text-center text-[11px] text-muted-foreground">
+              Assistente com IA. Suas respostas ajudam a preparar a conversa com o time.
             </p>
-          </div>
-        </div>
+          </form>
+        </section>
       )}
     </>
   );
