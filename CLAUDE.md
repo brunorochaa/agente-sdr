@@ -26,7 +26,7 @@ O Deno não precisa estar instalado: os scripts usam `npx deno`.
 
 ## Estrutura
 
-- `src/pages/Index.tsx`: página do ERP360. `src/components/ChatWidget.tsx`: webchat. `src/components/Logo.tsx`: marca, o rosto de óculos escuros "B)" do Bruno (manter igual a `public/favicon.svg`; o `favicon.ico` e o `icon-256.png` vêm do ícone original em `D:BrunoBrunoCentralProjetosResources`). O nome do produto continua ERP360, sem o "B)" no texto. `src/lib/chat-events.ts`: `openChat(texto?)` abre o chat de qualquer lugar da página.
+- `src/pages/Index.tsx`: página do ERP360. `src/pages/Privacidade.tsx`: página `/privacidade` (LGPD; o `vercel.json` faz o fallback das rotas para o `index.html`). `src/components/ChatWidget.tsx`: webchat. `src/components/Logo.tsx`: marca, o rosto de óculos escuros "B)" do Bruno (manter igual a `public/favicon.svg`; o `favicon.ico` e o `icon-256.png` vêm do ícone original em `D:BrunoBrunoCentralProjetosResources`). O nome do produto continua ERP360, sem o "B)" no texto. `src/lib/chat-events.ts`: `openChat(texto?)` abre o chat de qualquer lugar da página.
 - `supabase/functions/sdr-chat/`: `index.ts` (liga banco e IA reais), `handler.ts` (rota HTTP com dependências injetadas), `agent.ts` (ciclo modelo ↔ ferramentas), `tools.ts` (registrarLead, oferecerHorarios, agendarReuniao), `prompt.ts`, `db.ts` (interface `Repository`), `config.ts`.
 - `supabase/functions/sdr-chat/llm/`: `types.ts` (interface `LlmProvider`), um arquivo por provedor e `index.ts` (escolha por variável).
 - `supabase/functions/_shared/`: `pipefy.ts`, `calcom.ts`, `http.ts`.

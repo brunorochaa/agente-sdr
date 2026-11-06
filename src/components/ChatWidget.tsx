@@ -24,13 +24,27 @@ interface Message {
   failed?: boolean;
 }
 
+type HistoryStatus = "idle" | "loading" | "ready";
+
+/** Identifica a conversa do visitante. Nunca derruba a página, mesmo sem acesso ao localStorage. */
 function getSessionId(): string {
-  let id = localStorage.getItem(SESSION_KEY);
-  if (!id) {
-    id = `session_${crypto.randomUUID()}`;
-    localStorage.setItem(SESSION_KEY, id);
+  const create = () =>
+    `session_${
+      globalThis.crypto?.randomUUID?.() ??
+      `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 12)}`
+    }`;
+
+  try {
+    let id = localStorage.getItem(SESSION_KEY);
+    if (!id) {
+      id = create();
+      localStorage.setItem(SESSION_KEY, id);
+    }
+    return id;
+  } catch {
+    // Safari com cookies bloqueados, navegação privada antiga etc.: a conversa vale só nesta aba.
+    return create();
   }
-  return id;
 }
 
 /** Quando a função recusa por excesso de uso (429), ela explica o motivo em pt-BR. */
@@ -48,9 +62,16 @@ function formatTime(date: Date) {
   return date.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
 }
 
-/** Mostra o texto com links clicáveis (ex.: link da reunião). */
+function prefersReducedMotion() {
+  return window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
+}
+
+/**
+ * Mostra o texto com links clicáveis (ex.: link da reunião).
+ * A pontuação no fim da frase ("...cal.com/x.") não entra no link.
+ */
 function MessageText({ text }: { text: string }) {
-  const parts = text.split(/(https?:\/\/[^\s)]+)/g);
+  const parts = text.split(/(https?:\/\/[^\s)]+[^\s).,;:!?])/g);
   return (
     <>
       {parts.map((part, index) =>
@@ -74,10 +95,12 @@ function MessageText({ text }: { text: string }) {
 
 function TypingIndicator() {
   return (
-    <div className="flex items-center gap-1 px-1 py-2" aria-label="Digitando">
+    <div className="flex items-center gap-1 px-1 py-2" role="status">
+      <span className="sr-only">Assistente digitando</span>
       {[0, 150, 300].map((delay) => (
         <span
           key={delay}
+          aria-hidden="true"
           className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground/60"
           style={{ animationDelay: `${delay}ms` }}
         />
@@ -91,17 +114,19 @@ export const ChatWidget = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [historyLoaded, setHistoryLoaded] = useState(false);
+  const [historyStatus, setHistoryStatus] = useState<HistoryStatus>("idle");
   const [notice, setNotice] = useState<string | null>(null);
   const [sessionId] = useState(getSessionId);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const launcherRef = useRef<HTMLButtonElement>(null);
+  const wasOpen = useRef(false);
 
   // Carrega o histórico só quando o chat é aberto pela primeira vez
   // (assim, quem só lê a página não gera chamadas à função).
   useEffect(() => {
-    if (!isOpen || historyLoaded) return;
-    setHistoryLoaded(true);
+    if (!isOpen || historyStatus !== "idle") return;
+    setHistoryStatus("loading");
 
     supabase.functions
       .invoke("sdr-chat", { body: { action: "history", sessionId } })
@@ -120,8 +145,11 @@ export const ChatWidget = () => {
       .catch((error) => {
         console.error("Erro ao carregar histórico:", error);
         setMessages([{ role: "assistant", content: WELCOME_FALLBACK, timestamp: new Date() }]);
-      });
-  }, [isOpen, historyLoaded, sessionId]);
+      })
+      // Só aqui o chat passa a aceitar envio: antes disso, o histórico poderia
+      // sobrescrever uma mensagem que o visitante acabou de mandar.
+      .finally(() => setHistoryStatus("ready"));
+  }, [isOpen, historyStatus, sessionId]);
 
   // Botões da página podem abrir o chat com um texto sugerido.
   useEffect(
@@ -129,13 +157,44 @@ export const ChatWidget = () => {
       onOpenChat((draft) => {
         setIsOpen(true);
         if (draft) setInput(draft);
-        setTimeout(() => inputRef.current?.focus(), 50);
       }),
     [],
   );
 
+  // Foco: ao abrir, vai para o campo; ao fechar, volta para o botão que abriu o chat.
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (isOpen) {
+      wasOpen.current = true;
+      const timer = setTimeout(() => inputRef.current?.focus(), 50);
+      return () => clearTimeout(timer);
+    }
+    if (wasOpen.current) {
+      wasOpen.current = false;
+      launcherRef.current?.focus();
+    }
+  }, [isOpen]);
+
+  // Esc fecha o chat; no celular (tela cheia) a página de trás não rola.
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setIsOpen(false);
+    };
+    document.addEventListener("keydown", onKeyDown);
+
+    const fullScreen = window.matchMedia?.("(max-width: 639px)").matches ?? false;
+    const previousOverflow = document.body.style.overflow;
+    if (fullScreen) document.body.style.overflow = "hidden";
+
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [isOpen]);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: prefersReducedMotion() ? "auto" : "smooth" });
   }, [messages, isLoading, isOpen]);
 
   // Ajusta a altura do campo conforme o texto.
@@ -146,10 +205,12 @@ export const ChatWidget = () => {
     el.style.height = `${Math.min(el.scrollHeight, 120)}px`;
   }, [input, isOpen]);
 
+  const ready = historyStatus === "ready";
+
   const send = useCallback(
     async (text: string) => {
       const content = text.trim();
-      if (!content || isLoading) return;
+      if (!content || isLoading || !ready) return;
 
       setMessages((prev) => [
         ...prev.filter((m) => !m.failed),
@@ -179,7 +240,7 @@ export const ChatWidget = () => {
         setIsLoading(false);
       }
     },
-    [isLoading, sessionId],
+    [isLoading, ready, sessionId],
   );
 
   const retry = (message: Message) => {
@@ -187,27 +248,30 @@ export const ChatWidget = () => {
     send(message.content);
   };
 
-  const showSuggestions = !isLoading && historyLoaded && messages.length <= 1;
+  const showSuggestions = !isLoading && ready && messages.length <= 1;
 
   return (
     <>
       {!isOpen && (
         <button
+          ref={launcherRef}
           type="button"
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-5 right-5 z-50 flex items-center gap-2 rounded-full bg-primary py-3.5 pl-4 pr-5 text-sm font-medium text-primary-foreground shadow-xl shadow-primary/30 transition-transform hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-          aria-label="Abrir chat com especialista"
+          aria-haspopup="dialog"
+          className="fixed bottom-5 right-5 z-50 flex items-center gap-2 rounded-full bg-primary py-3.5 pl-4 pr-4 text-sm font-medium text-primary-foreground shadow-xl shadow-primary/30 transition-transform hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 sm:pr-5"
         >
-          <MessageSquare className="h-4 w-4" />
-          Falar com especialista
+          <MessageSquare className="h-5 w-5 sm:h-4 sm:w-4" aria-hidden="true" />
+          {/* No celular só o ícone aparece, mas o nome acessível continua o mesmo texto */}
+          <span className="sr-only sm:not-sr-only">Falar com especialista</span>
         </button>
       )}
 
       {isOpen && (
         <section
           role="dialog"
+          aria-modal="true"
           aria-label="Chat com especialista ERP360"
-          className="fixed inset-0 z-50 flex flex-col overflow-hidden bg-chat-background duration-200 animate-in fade-in slide-in-from-bottom-2 sm:inset-auto sm:bottom-5 sm:right-5 sm:h-[620px] sm:max-h-[calc(100vh-2.5rem)] sm:w-[400px] sm:rounded-3xl sm:border sm:shadow-2xl"
+          className="fixed inset-0 z-50 flex h-[100dvh] flex-col overflow-hidden bg-chat-background duration-200 animate-in fade-in slide-in-from-bottom-2 sm:inset-auto sm:bottom-5 sm:right-5 sm:h-[620px] sm:max-h-[calc(100vh-2.5rem)] sm:w-[400px] sm:rounded-3xl sm:border sm:shadow-2xl"
         >
           {/* Cabeçalho */}
           <header className="flex items-center justify-between border-b bg-gradient-to-b from-card to-muted/40 px-4 py-3">
@@ -224,7 +288,7 @@ export const ChatWidget = () => {
             <button
               type="button"
               onClick={() => setIsOpen(false)}
-              className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              className="rounded-lg p-2.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               aria-label="Fechar chat"
             >
               <X className="h-4 w-4" />
@@ -255,7 +319,7 @@ export const ChatWidget = () => {
                     <button
                       type="button"
                       onClick={() => retry(msg)}
-                      className="flex items-center gap-1 text-xs font-medium text-destructive hover:underline"
+                      className="flex items-center gap-1 text-xs font-medium text-destructive hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     >
                       <RotateCw className="h-3 w-3" />
                       Não enviada. Tentar de novo
@@ -269,7 +333,7 @@ export const ChatWidget = () => {
               );
             })}
 
-            {(isLoading || (isOpen && !historyLoaded)) && (
+            {(isLoading || historyStatus === "loading") && (
               <div className="w-fit rounded-2xl rounded-bl-sm border bg-card px-3">
                 <TypingIndicator />
               </div>
@@ -291,7 +355,7 @@ export const ChatWidget = () => {
                     key={suggestion}
                     type="button"
                     onClick={() => send(suggestion)}
-                    className="rounded-full border bg-card px-3 py-1.5 text-xs transition-colors hover:border-primary hover:text-primary"
+                    className="rounded-full border bg-card px-3 py-1.5 text-xs transition-colors hover:border-primary hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
                     {suggestion}
                   </button>
@@ -317,7 +381,8 @@ export const ChatWidget = () => {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) {
+                  // isComposing: não envia enquanto o teclado ainda está montando um caractere (IME)
+                  if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
                     e.preventDefault();
                     send(input);
                   }
@@ -325,12 +390,13 @@ export const ChatWidget = () => {
                 placeholder="Escreva sua mensagem"
                 maxLength={MAX_LENGTH}
                 aria-label="Mensagem"
-                className="max-h-[120px] flex-1 resize-none bg-transparent py-1 text-sm outline-none placeholder:text-muted-foreground"
+                // 16px no celular: abaixo disso o iPhone dá zoom ao tocar no campo
+                className="max-h-[120px] flex-1 resize-none bg-transparent py-1 text-base outline-none placeholder:text-muted-foreground sm:text-sm"
               />
               <button
                 type="submit"
-                disabled={isLoading || !input.trim()}
-                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground transition-opacity disabled:opacity-30"
+                disabled={isLoading || !ready || !input.trim()}
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-30"
                 aria-label="Enviar mensagem"
               >
                 <ArrowUp className="h-4 w-4" />
@@ -338,7 +404,15 @@ export const ChatWidget = () => {
             </div>
             <p className="mt-2 text-center text-[11px] text-muted-foreground">
               Assistente com IA. Nome, e-mail e o que você contar aqui são usados só para o contato
-              comercial.
+              comercial.{" "}
+              <a
+                href="/privacidade"
+                target="_blank"
+                rel="noreferrer"
+                className="font-medium underline underline-offset-2 hover:text-foreground"
+              >
+                Privacidade
+              </a>
             </p>
           </form>
         </section>
