@@ -34,11 +34,13 @@ Banco e Edge Functions (requer o [Supabase CLI](https://supabase.com/docs/guides
 
 ```bash
 supabase link --project-ref <seu-project-ref>
-supabase db push                              # aplica as migrations
+supabase db push --remote                     # aplica as migrations (CLI 3.x: sem --remote usa o banco local)
 cp supabase/.env.example supabase/.env        # preencha as chaves
 supabase secrets set --env-file supabase/.env
-supabase functions deploy sdr-chat
+supabase functions deploy sdr-chat           # o mapa de imports vem do config.toml
 ```
+
+Se o `db push` falhar ao criar o usuário temporário (`cli_login_postgres`), use a senha do banco: `SUPABASE_DB_PASSWORD=... supabase db push --remote`. Dentro de agentes e scripts, os comandos que alteram produção pedem `--yes`.
 
 Para rodar as funções localmente: `supabase start` e `supabase functions serve --env-file supabase/.env`.
 

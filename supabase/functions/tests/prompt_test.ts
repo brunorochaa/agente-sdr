@@ -12,3 +12,7 @@ Deno.test("o prompt traz os horários já oferecidos, com o valor start exato", 
 Deno.test("sem horários oferecidos, o prompt não menciona a lista", () => {
   assertEquals(buildSystemPrompt(new Date()).includes("HORÁRIOS JÁ OFERECIDOS"), false);
 });
+
+Deno.test("o prompt proíbe markdown, porque o chat mostra texto puro", () => {
+  assertStringIncludes(buildSystemPrompt(new Date()), "NUNCA use markdown");
+});

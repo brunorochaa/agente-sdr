@@ -1,12 +1,17 @@
 project_id = "vtxokpagayzscodhgzib"
 
+# Todas as funções usam o mesmo mapa de imports (supabase/functions/deno.json).
+
 # Chamada pelo widget público (sem login).
 [functions.sdr-chat]
 verify_jwt = false
+import_map = "./functions/deno.json"
 
 # Endpoints internos, só para testar as integrações isoladamente.
 [functions.pipefy-integration]
 verify_jwt = true
+import_map = "./functions/deno.json"
 
 [functions.calcom-integration]
 verify_jwt = true
+import_map = "./functions/deno.json"
